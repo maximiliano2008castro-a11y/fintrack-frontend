@@ -32,7 +32,8 @@ const Login = () => {
         if (!cleanEmail || !password) return alert('⚠️ Ingresa correo y contraseña.');
         
         try {
-            const respuesta = await fetch('https://fintrack-api-wacv.onrender.com/api/auth/login', {
+            // 👇 TU LINK REAL AQUÍ 👇
+            const respuesta = await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: cleanEmail, password: password })
@@ -85,7 +86,8 @@ const Login = () => {
         };
 
         try {
-            const respuesta = await fetch('https://fintrack-api-wacv.onrender.com/api/auth/register', {
+            // 👇 TU LINK REAL AQUÍ 👇
+            const respuesta = await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(datosParaNode)
