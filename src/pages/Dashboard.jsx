@@ -11,16 +11,15 @@ import RetosFullScreen from '../components/RetosFullScreen';
 
 import { 
     FaWallet, FaArrowUp, FaArrowDown, FaSignOutAlt, FaCog, FaBoxOpen, 
-    FaShieldAlt, FaCheckCircle, FaExclamationCircle, FaBell, FaPlus, 
-    FaUserEdit, FaTimes, FaCalendarAlt, FaMagic, FaTrash, 
+    FaShieldAlt, FaCheckCircle, FaExclamationCircle, FaPlus, 
+    FaUserEdit, FaTimes, FaCalendarAlt, FaTrash, 
     FaChevronUp, FaChevronDown, FaExclamationTriangle, FaHistory, FaSave,
-    FaBullseye, FaLockOpen, FaEdit, FaLightbulb, FaPiggyBank, FaLock, FaSyncAlt, FaGamepad
+    FaBullseye, FaEdit, FaPiggyBank, FaLock, FaSyncAlt, FaGamepad, FaUserTimes
 } from 'react-icons/fa';
 
 const Dashboard = () => {
     const navigate = useNavigate();
     
-    // 🔴 ESTADO INICIAL
     const [isLoading, setIsLoading] = useState(true);
     const [isFirstTime, setIsFirstTime] = useState(false); 
 
@@ -63,7 +62,6 @@ const Dashboard = () => {
     const [cajonesCorte, setCajonesCorte] = useState([]);
     const [ingresoPendienteCorte, setIngresoPendienteCorte] = useState(0);
 
-    const [mostrarBannerSobrante, setMostrarBannerSobrante] = useState(true);
     const [isEditMontoOpen, setIsEditMontoOpen] = useState(false);
     const [editMontoForm, setEditMontoForm] = useState({ nombre: '', monto: '', frecuencia: 'Mensual' });
     const [isQuickEventOpen, setIsQuickEventOpen] = useState(false);
@@ -98,127 +96,152 @@ const Dashboard = () => {
         return "OK";
     };
 
-    // 🔴 1. LÓGICA DE CARGA MEJORADA PARA EVITAR REPETIR BIENVENIDA
+    // 🟢 1. OBTENER DATOS DE LA NUBE AL ENTRAR (GET)
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userEmail = localStorage.getItem('userEmail');
         
-        // Si no hay token, lo mandamos al login
         if (!token || !userEmail) { 
             navigate('/'); 
             return; 
         }
         
-        let db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
-        
-        // Si el usuario no existe en la BD local, creamos un perfil básico
-        if (!db[userEmail]) { 
-            db[userEmail] = { password: '123', isConfigured: false }; 
-            localStorage.setItem('finTrack_DB', JSON.stringify(db)); 
-        }
-        
-        const userData = db[userEmail];
         setEmail(userEmail);
-        
-        // Verificamos la LLAVE DE ACCESO: isConfigured
-        if (userData.isConfigured !== true) {
-            setIsFirstTime(true);
-            setIsLoading(false);
-            return; // Detenemos la carga aquí para que muestre la Bienvenida
-        }
 
-        // Si ya está configurado, cargamos todo de golpe
-        setUserName(userData.nombre || '');
-        const config = userData.configGlobal || {};
+        const fetchCloudData = async () => {
+            try {
+                const response = await fetch(`https://fintrack-api-wacv.onrender.com/api/auth/get-data/${userEmail}`);
+                const data = await response.json();
 
-        setFechaNacimiento(userData.fechaNacimiento || '');
-        setPinSeguridad(userData.pinSeguridad || '');
-        setCicloMaestro(config.cicloMaestro || 'Mensual');
-        setDiaInicioCiclo(config.diaInicioCiclo || '1'); 
-        setUltimaFechaReinicio(config.ultimaFechaReinicio || ''); 
-        
-        setSaldoActual(parseFloat(config.saldoActual) || 0);
-        setIngresos(config.ingresos || []);
-        setCajones(config.configuraciones || {});
-        
-        setBoveda(parseFloat(config.boveda) || 0); 
-        setCajaFuerte(parseFloat(config.cajaFuerte) || 0); 
-        
-        setOrdenCajones(config.ordenCajones || []);
-        setHistorial(userData.historial || []);
-        setEventosCalendario(userData.agenda || []);
-        
-        // Aseguramos que la bienvenida esté oculta y quitamos el loading
-        setIsFirstTime(false);
-        setIsLoading(false);
-        
+                if (response.ok && data.isConfigured) {
+                    // ¡Descargamos todo de la nube de TiDB!
+                    const cloudData = data.financialData;
+                    
+                    setUserName(cloudData.nombre || '');
+                    setFechaNacimiento(cloudData.fechaNacimiento || '');
+                    setPinSeguridad(cloudData.pinSeguridad || '');
+                    
+                    const config = cloudData.configGlobal || {};
+                    setCicloMaestro(config.cicloMaestro || 'Mensual');
+                    setDiaInicioCiclo(config.diaInicioCiclo || '1'); 
+                    setUltimaFechaReinicio(config.ultimaFechaReinicio || ''); 
+                    setSaldoActual(parseFloat(config.saldoActual) || 0);
+                    setBoveda(parseFloat(config.boveda) || 0); 
+                    setCajaFuerte(parseFloat(config.cajaFuerte) || 0); 
+                    setIngresos(config.ingresos || []);
+                    setCajones(config.configuraciones || {});
+                    setOrdenCajones(config.ordenCajones || []);
+                    
+                    setHistorial(cloudData.historial || []);
+                    setEventosCalendario(cloudData.agenda || []);
+                    
+                    setIsFirstTime(false);
+                } else {
+                    // Si no está configurado en la nube, lanzamos la bienvenida
+                    setIsFirstTime(true);
+                }
+            } catch (error) {
+                console.error("Error al descargar datos de la nube:", error);
+                alert("Error de conexión con la nube. Mostrando datos locales de respaldo.");
+                setIsFirstTime(true); // Fallback temporal
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCloudData();
     }, [navigate]);
 
-    // 🔴 2. LÓGICA AL FINALIZAR LA BIENVENIDA (CREA LA LLAVE DE ACCESO)
-    const handleFinalizarBienvenida = (datos) => {
-        let db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
-        if(!db[email]) db[email] = {};
-        
-        // Guardamos los datos
-        db[email].nombre = datos.nombre; 
-        db[email].fechaNacimiento = datos.fechaNacimiento; 
-        db[email].pinSeguridad = datos.pin;
-        db[email].configGlobal = { 
-            saldoActual: datos.saldo, 
-            boveda: 0, 
-            cajaFuerte: 0, 
-            cicloMaestro: datos.ciclo, 
-            diaInicioCiclo: datos.diaInicio, 
-            ultimaFechaReinicio: '', 
-            ingresos: datos.ingresos, 
-            configuraciones: datos.cajones, 
-            ordenCajones: datos.ordenCajones 
+    // 🟢 2. GUARDAR DATOS EN LA NUBE AL FINALIZAR BIENVENIDA (POST)
+    const handleFinalizarBienvenida = async (datos) => {
+        setIsLoading(true);
+        const financialDataObj = {
+            nombre: datos.nombre,
+            fechaNacimiento: datos.fechaNacimiento,
+            pinSeguridad: datos.pin,
+            configGlobal: {
+                saldoActual: datos.saldo,
+                boveda: 0,
+                cajaFuerte: 0,
+                cicloMaestro: datos.ciclo,
+                diaInicioCiclo: datos.diaInicio,
+                ultimaFechaReinicio: '',
+                ingresos: datos.ingresos,
+                configuraciones: datos.cajones,
+                ordenCajones: datos.ordenCajones
+            },
+            historial: [],
+            agenda: []
         };
-        
-        // ✨ ESTA ES LA LLAVE MÁGICA: Le decimos a la base de datos que ya configuró su app
-        db[email].isConfigured = true;
 
-        localStorage.setItem('finTrack_DB', JSON.stringify(db));
-        
-        // Actualizamos los estados en pantalla
-        setUserName(datos.nombre); 
-        setFechaNacimiento(datos.fechaNacimiento); 
-        setPinSeguridad(datos.pin); 
-        setSaldoActual(datos.saldo); 
-        setCicloMaestro(datos.ciclo); 
-        setDiaInicioCiclo(datos.diaInicio);
-        setIngresos(datos.ingresos); 
-        setCajones(datos.cajones); 
-        setOrdenCajones(datos.ordenCajones);
-        
-        // Ocultamos la Bienvenida
-        setIsFirstTime(false);
+        try {
+            await fetch('https://fintrack-api-wacv.onrender.com/api/auth/save-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, financialData: financialDataObj })
+            });
+
+            // Actualizamos la pantalla
+            setUserName(datos.nombre); 
+            setFechaNacimiento(datos.fechaNacimiento); 
+            setPinSeguridad(datos.pin); 
+            setSaldoActual(datos.saldo); 
+            setCicloMaestro(datos.ciclo); 
+            setDiaInicioCiclo(datos.diaInicio);
+            setIngresos(datos.ingresos); 
+            setCajones(datos.cajones); 
+            setOrdenCajones(datos.ordenCajones);
+            setIsFirstTime(false);
+        } catch (error) {
+            console.error("Error al guardar en la nube:", error);
+            alert("No se pudo guardar en la nube. Intenta de nuevo.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    // 🔴 3. AUTOGUARDADO (Mantenemos la llave isConfigured)
+    // 🟢 3. AUTOGUARDADO EN LA NUBE CONTINUO
+    // (Cada que mueves dinero, se dispara esto hacia TiDB)
     useEffect(() => {
-        // Solo guardamos si ya no está en modo loading ni en la bienvenida
         if (!email || isFirstTime || isLoading) return;
-        
-        let db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
-        if (!db[email]) db[email] = {}; 
-        
-        db[email].configGlobal = { saldoActual, boveda, cajaFuerte, cicloMaestro, diaInicioCiclo, ultimaFechaReinicio, ingresos, configuraciones: cajones, ordenCajones };
-        db[email].historial = historial; 
-        db[email].agenda = eventosCalendario; 
-        db[email].nombre = userName; 
-        db[email].fechaNacimiento = fechaNacimiento;
-        db[email].isConfigured = true; // Aseguramos que la llave no se borre
-        
-        if (pinSeguridad) db[email].pinSeguridad = pinSeguridad;
-        
-        localStorage.setItem('finTrack_DB', JSON.stringify(db));
+
+        const syncToCloud = async () => {
+            const financialDataObj = {
+                nombre: userName,
+                fechaNacimiento: fechaNacimiento,
+                pinSeguridad: pinSeguridad,
+                configGlobal: {
+                    saldoActual, boveda, cajaFuerte, cicloMaestro, diaInicioCiclo, 
+                    ultimaFechaReinicio, ingresos, configuraciones: cajones, ordenCajones
+                },
+                historial: historial,
+                agenda: eventosCalendario
+            };
+
+            try {
+                await fetch('https://fintrack-api-wacv.onrender.com/api/auth/save-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, financialData: financialDataObj })
+                });
+            } catch (error) {
+                console.error("Error en autoguardado en la nube:", error);
+            }
+        };
+
+        // Ponemos un pequeño retraso (debounce) para no saturar el servidor si haces muchos clics rápidos
+        const delaySync = setTimeout(() => {
+            syncToCloud();
+        }, 1000);
+
+        return () => clearTimeout(delaySync);
+
     }, [saldoActual, cajones, ordenCajones, boveda, cajaFuerte, historial, eventosCalendario, userName, fechaNacimiento, pinSeguridad, cicloMaestro, diaInicioCiclo, ultimaFechaReinicio, ingresos, email, isFirstTime, isLoading]);
 
 
-    // ===============================================
-    // EL RESTO DEL CÓDIGO SE MANTIENE INTACTO
-    // ===============================================
+    // =====================================
+    // EL RESTO DEL CÓDIGO FINANCIERO
+    // =====================================
 
     useEffect(() => {
         if (isLoading || isFirstTime || !cicloMaestro) return;
@@ -268,7 +291,6 @@ const Dashboard = () => {
             const pendientes = [];
             nO.forEach(n => {
                 if (!nC[n] || n === 'Libre') return;
-                
                 let saltarLlenado = false;
                 if (n.startsWith('Meta:')) {
                     const match = n.match(/\(Total: (\d+(\.\d+)?)\)/);
@@ -306,7 +328,34 @@ const Dashboard = () => {
         setIsCorteModalOpen(false); alert(`✅ ¡Tus cascadas se han reiniciado con éxito para este nuevo ciclo!`);
     };
 
-    const handleLogout = () => { localStorage.clear(); navigate('/'); };
+    const handleLogout = () => { 
+        localStorage.removeItem('token'); 
+        localStorage.removeItem('userEmail'); 
+        navigate('/'); 
+    };
+
+    const handleEliminarCuenta = async () => {
+        if (window.confirm("🚨 ADVERTENCIA: Estás a punto de eliminar tu cuenta de forma PERMANENTE. Perderás todas tus metas, cajones y dinero registrado.\n\n¿Deseas continuar?")) {
+            const conf = window.prompt("Para confirmar la eliminación, escribe la palabra ELIMINAR en mayúsculas:");
+            if (conf === "ELIMINAR") {
+                try {
+                    await fetch('https://fintrack-api-wacv.onrender.com/api/auth/delete', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email })
+                    });
+                } catch (error) {
+                    console.log("No se pudo contactar al backend para eliminar");
+                }
+                localStorage.removeItem('token');
+                localStorage.removeItem('userEmail');
+                alert("🗑️ Tu cuenta ha sido eliminada correctamente.");
+                navigate('/');
+            } else {
+                alert("❌ Cancelado. La palabra no coincide.");
+            }
+        }
+    };
 
     const registrarEnHistorial = (nombre, monto, tipo, saldoAnt, saldoNuev) => {
         setHistorial(prev => [{ id: Date.now(), dia: hoy.getDate(), mes: hoy.getMonth(), anio: hoy.getFullYear(), hora: hoy.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), nombre, monto: parseFloat(monto), tipo, saldoAnterior: saldoAnt !== undefined ? saldoAnt : null, saldoNuevo: saldoNuev !== undefined ? saldoNuev : null }, ...prev]);
@@ -488,7 +537,7 @@ const Dashboard = () => {
         }
     };
 
-    const abrirEditarPerfil = () => { const db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}'); const pass = db[email] ? db[email].password : ''; setProfileForm({ nombre: userName, correo: email, fechaNacimiento: fechaNacimiento, password: '', confirmPassword: '', pin: '', confirmPin: '' }); setIsProfileOpen(false); setIsEditProfileOpen(true); };
+    const abrirEditarPerfil = () => { const pass = ''; setProfileForm({ nombre: userName, correo: email, fechaNacimiento: fechaNacimiento, password: '', confirmPassword: '', pin: '', confirmPin: '' }); setIsProfileOpen(false); setIsEditProfileOpen(true); };
     
     const handleGuardarPerfil = () => {
         if (!profileForm.nombre) return alert("❌ Nombre vacío."); 
@@ -501,11 +550,7 @@ const Dashboard = () => {
         setUserName(profileForm.nombre); 
         if (profileForm.fechaNacimiento) setFechaNacimiento(profileForm.fechaNacimiento); 
         if (profileForm.pin) setPinSeguridad(profileForm.pin);
-        const db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
-        if (db[email]) { 
-            db[email].nombre = profileForm.nombre; if (profileForm.password) db[email].password = profileForm.password; if (profileForm.pin) db[email].pinSeguridad = profileForm.pin; if (profileForm.fechaNacimiento) db[email].fechaNacimiento = profileForm.fechaNacimiento; localStorage.setItem('finTrack_DB', JSON.stringify(db)); 
-        }
-        setIsEditProfileOpen(false); alert("✅ Perfil actualizado.");
+        setIsEditProfileOpen(false); alert("✅ Perfil actualizado. Se sincronizará automáticamente con la nube.");
     };
 
     const ingresosMensuales = ingresos.reduce((s, i) => s + calcularAcople(i.monto, i.frecuencia, 'Mensual'), 0);
@@ -530,9 +575,7 @@ const Dashboard = () => {
 
     const totalAcumuladoRetos = Object.keys(cajones).reduce((acc, key) => acc + ((key.startsWith('Reto:') || key.includes('Capricho:') || key.startsWith('Meta:')) ? (cajones[key].acumulado || 0) : 0), 0);
 
-    if (isLoading) return <div style={{height: '100vh', backgroundColor: '#f4f7f6'}}></div>;
-    
-    // 🔴 LA VERIFICACIÓN: SI ES TU PRIMERA VEZ MUESTRA LA BIENVENIDA, SI NO, NO.
+    if (isLoading) return <div style={{height: '100vh', backgroundColor: '#f4f7f6', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><h2 style={{color: '#007bff'}}>Sincronizando con TiDB... ☁️</h2></div>;
     if (isFirstTime) return <div className="app-wrapper" style={appWrapperStyle}><BienvenidaFullScreen onFinish={handleFinalizarBienvenida} /></div>;
 
     return (
@@ -729,7 +772,12 @@ const Dashboard = () => {
                     <button style={profileActionBtn} onClick={abrirEditarPerfil}><FaUserEdit style={{ color: '#28a745', fontSize: '18px' }} /> Editar Perfil y Contraseña</button>
                     <button style={profileActionBtn} onClick={abrirReconfiguracion}><FaCog style={{ color: '#007bff', fontSize: '18px' }} /> Reconfigurar Finanzas Base</button>
                 </div>
-                <div style={{ marginTop: 'auto', paddingTop: '40px' }}><button style={logoutBtnStyle} onClick={handleLogout}><FaSignOutAlt style={{ fontSize: '18px' }} /> Cerrar Sesión</button></div>
+                <div style={{ marginTop: 'auto', paddingTop: '40px' }}>
+                    <button style={logoutBtnStyle} onClick={handleLogout}><FaSignOutAlt style={{ fontSize: '18px' }} /> Cerrar Sesión</button>
+                    <button onClick={handleEliminarCuenta} style={deleteAccountBtnStyle}>
+                        <FaUserTimes style={{ fontSize: '18px' }} /> Eliminar Cuenta
+                    </button>
+                </div>
             </div>
 
             <aside className="sidebar" style={sidebarStyle}>
@@ -905,5 +953,6 @@ const profileMenuSidebar = { position: 'fixed', top: 0, right: 0, width: '400px'
 const avatarLargeStyle = { width: '110px', height: '110px', background: '#007bff', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '45px', margin: '0 auto' };
 const profileActionBtn = { width: '100%', padding: '20px', background: '#f8f9fa', border: '1px solid #e1e5ee', borderRadius: '15px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '15px', fontSize: '15px', color: '#2f3542', cursor: 'pointer', marginBottom: '15px' };
 const logoutBtnStyle = { width: '100%', padding: '20px', background: '#ffebee', color: '#dc3545', border: 'none', borderRadius: '15px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', marginTop: 'auto' };
+const deleteAccountBtnStyle = { width: '100%', padding: '20px', background: '#fff', color: '#dc3545', border: '2px solid #dc3545', borderRadius: '15px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', marginTop: '10px', transition: '0.2s' };
 
 export default Dashboard;
