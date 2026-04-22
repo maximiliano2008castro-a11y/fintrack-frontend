@@ -110,7 +110,7 @@ const Dashboard = () => {
 
         const fetchCloudData = async () => {
             try {
-                const response = await fetch(`https://fintrack-api-wacv.onrender.com/api/auth/get-data/${userEmail}`);
+                const response = await fetch(`https://fintrack-backend-27ml.onrender.com/api/auth/get-data/${userEmail}`);
                 const data = await response.json();
 
                 if (response.ok && data.isConfigured) {
@@ -175,7 +175,7 @@ const Dashboard = () => {
         };
 
         try {
-            await fetch('https://fintrack-api-wacv.onrender.com/api/auth/save-data', {
+            await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/save-data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email, financialData: financialDataObj })
@@ -219,7 +219,7 @@ const Dashboard = () => {
             };
 
             try {
-                await fetch('https://fintrack-api-wacv.onrender.com/api/auth/save-data', {
+                await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/save-data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, financialData: financialDataObj })
@@ -339,7 +339,7 @@ const Dashboard = () => {
             const conf = window.prompt("Para confirmar la eliminación, escribe la palabra ELIMINAR en mayúsculas:");
             if (conf === "ELIMINAR") {
                 try {
-                    await fetch('https://fintrack-api-wacv.onrender.com/api/auth/delete', {
+                    await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/delete', {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email: email })
