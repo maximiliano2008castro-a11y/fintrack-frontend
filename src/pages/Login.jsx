@@ -16,16 +16,22 @@ const Login = () => {
         localStorage.removeItem('configGlobal');
     }, [navigate]);
 
+    // 🔴 FILTRO DE SEGURIDAD ESTRICTO PARA CONTRASEÑAS
+    const validarPasswordSegura = (pass) => {
+        if (pass.length < 8) return "Debe tener al menos 8 caracteres.";
+        if (!/[A-Z]/.test(pass)) return "Debe incluir al menos una letra MAYÚSCULA.";
+        if (!/[a-z]/.test(pass)) return "Debe incluir al menos una letra minúscula.";
+        if (!/[0-9]/.test(pass)) return "Debe incluir al menos un número.";
+        if (!/[@$!%*?&.,\-_]/.test(pass)) return "Debe incluir al menos un carácter especial (ej. @$!%*?&).";
+        return "OK";
+    };
+
     const handleLogin = async (e) => {
         e.preventDefault();
         const cleanEmail = email.trim().toLowerCase();
         if (!cleanEmail || !password) return alert('⚠️ Ingresa correo y contraseña.');
         
-        // ==========================================
-        // 🔴 INICIO DE SESIÓN CON EL BACKEND EN RENDER
-        // ==========================================
         try {
-            // URL CAMBIADA A TU SERVIDOR EN LA NUBE 👇
             const respuesta = await fetch('https://fintrack-api-wacv.onrender.com/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -40,13 +46,11 @@ const Login = () => {
             }
         } catch (error) {
             console.error("No se pudo conectar al servidor. Usando modo local.", error);
-            // MODO SUPERVIVENCIA
             const db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
             const userProfile = db[cleanEmail];
             if (!userProfile) return alert('❌ Esta cuenta no existe en la base local ni en el servidor.');
             if (userProfile.password !== password) return alert('❌ Contraseña incorrecta.');
         }
-        // ==========================================
 
         localStorage.setItem('token', 'active_session');
         localStorage.setItem('userEmail', cleanEmail);
@@ -64,20 +68,23 @@ const Login = () => {
         if (!cleanEmail || !password || !confirmPassword) {
             return alert('⚠️ Llena todos los campos.');
         }
+
+        // 🔴 APLICAMOS EL FILTRO DE SEGURIDAD AQUÍ
+        const estadoPassword = validarPasswordSegura(password);
+        if (estadoPassword !== "OK") {
+            return alert(`🛡️ Contraseña insegura:\n${estadoPassword}`);
+        }
+
         if (password !== confirmPassword) {
             return alert('❌ Las contraseñas no coinciden.');
         }
 
-        // ==========================================
-        // 🔴 REGISTRO CON EL BACKEND EN RENDER
-        // ==========================================
         const datosParaNode = {
             email: cleanEmail,
             password: password
         };
 
         try {
-            // URL CAMBIADA A TU SERVIDOR EN LA NUBE 👇
             const respuesta = await fetch('https://fintrack-api-wacv.onrender.com/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -153,6 +160,13 @@ const Login = () => {
                             <input type="password" placeholder="Crea tu Contraseña" value={password} onChange={e=>setPassword(e.target.value)} style={inputStyle} />
                             <input type="password" placeholder="Confirma tu Contraseña" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} style={inputStyle} />
                             
+                            {/* 🔴 TEXTO DE AYUDA VISUAL PARA EL USUARIO */}
+                            <div style={{fontSize: '11px', color: '#666', lineHeight: '1.4', background: '#f8f9fa', padding: '10px', borderRadius: '5px', border: '1px solid #ddd'}}>
+                                <b>Tu contraseña debe tener:</b><br/>
+                                • Mín. 8 caracteres • 1 MAYÚSCULA<br/>
+                                • 1 minúscula • 1 número • 1 carácter especial
+                            </div>
+
                             <button type="submit" style={btnPrimary}>REGISTRARSE</button>
                         </form>
                         <div style={footerTextStyle}>

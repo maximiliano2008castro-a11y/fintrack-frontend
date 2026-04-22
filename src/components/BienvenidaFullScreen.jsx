@@ -32,8 +32,9 @@ const BienvenidaFullScreen = ({ onFinish }) => {
     const [calculadoraAbierta, setCalculadoraAbierta] = useState(null);
     const [itemsCalc, setItemsCalc] = useState([{ concepto: '', monto: '', frecuencia: 'Mensual' }]);
 
+    // 🛡️ FILTRO ANTI-NEGATIVOS UNIVERSAL
     const preventMinus = (e) => {
-        if (e.key === '-' || e.key === 'e') {
+        if (['-', 'e', 'E', '+'].includes(e.key)) {
             e.preventDefault();
         }
     };
@@ -207,15 +208,24 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                 .input-focus:focus { border-color: #007bff !important; box-shadow: 0 0 0 4px rgba(0,123,255,0.15) !important; outline: none; }
                 .btn-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
                 
-                /* ESTILOS DE SCROLL PREMIUM PARA LA BIENVENIDA */
                 .scroll-container::-webkit-scrollbar { width: 8px; }
                 .scroll-container::-webkit-scrollbar-track { background: transparent; }
                 .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
                 .scroll-container::-webkit-scrollbar-thumb:hover { background: #a4b0be; }
+
+                /* 🔴 MEDIA QUERIES PARA CELULARES */
+                @media (max-width: 600px) {
+                    .modal-responsive { padding: 30px 20px !important; border-radius: 20px !important; }
+                    .mobile-flex-col { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+                    .mobile-input-full { width: 100% !important; margin-bottom: 10px !important; }
+                    .title-responsive { font-size: 22px !important; }
+                    .desc-responsive { font-size: 14px !important; }
+                    .calc-mobile-flex { flex-direction: column !important; gap: 10px !important; }
+                    .calc-mobile-flex > input, .calc-mobile-flex > select { width: 100% !important; }
+                }
             `}</style>
 
-            {/* 🔴 AQUI ESTA LA MAGIA DEL SCROLL: className="scroll-container" + modalStyle */}
-            <div className="scroll-container" style={modalStyle}>
+            <div className="scroll-container modal-responsive" style={modalStyle}>
                 
                 <div style={{ width: '100%', height: '8px', background: '#f1f2f6', borderRadius: '10px', marginBottom: '30px', overflow: 'hidden', flexShrink: 0 }}>
                     <div style={{ width: `${(step / 7) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #007bff, #00d2ff)', transition: 'width 0.5s ease' }}></div>
@@ -224,8 +234,8 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                 {step === 1 && (
                     <div className="step-container" style={stepStyle}>
                         <div style={{...iconBadge, background: 'linear-gradient(135deg, #007bff, #6610f2)', color: '#fff', boxShadow: '0 10px 25px rgba(0,123,255,0.3)'}}><FaRocket/></div>
-                        <h1 style={titleStyle}>¡Bienvenido a FinTrack!</h1>
-                        <p style={descStyle}>El sistema que automatiza tu dinero en cascada. Olvídate del estrés financiero, aquí tu dinero trabaja por ti y fluye exactamente hacia donde debe ir.</p>
+                        <h1 className="title-responsive" style={titleStyle}>¡Bienvenido a FinTrack!</h1>
+                        <p className="desc-responsive" style={descStyle}>El sistema que automatiza tu dinero en cascada. Olvídate del estrés financiero, aquí tu dinero trabaja por ti y fluye exactamente hacia donde debe ir.</p>
                         <div style={tipBox}>
                             <FaLightbulb style={{color: '#f39c12', fontSize: '20px', flexShrink: 0}} />
                             <span style={{fontSize: '13px', color: '#2f3542', textAlign: 'left'}}>Te tomará menos de 3 minutos configurar tu Fortaleza. Ten a la mano tus cuentas bancarias.</span>
@@ -237,20 +247,20 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                 {step === 2 && (
                     <div className="step-container" style={stepStyle}>
                         <div style={{...iconBadge, background:'#eef3ff', color:'#007bff'}}><FaUserTie/></div>
-                        <h2 style={titleStyle}>Tus Cimientos</h2>
-                        <p style={descStyle}>¿Cómo te llamas y con cuánto capital arrancamos hoy?</p>
+                        <h2 className="title-responsive" style={titleStyle}>Tus Cimientos</h2>
+                        <p className="desc-responsive" style={descStyle}>¿Cómo te llamas y con cuánto capital arrancamos hoy?</p>
                         
-                        <input type="text" placeholder="¿Cómo te gusta que te llamen?" value={nombre} onChange={e=>setNombre(e.target.value)} style={inputBigStyle} className="input-focus" />
+                        <input type="text" placeholder="¿Cómo te gusta que te llamen?" value={nombre} onChange={e=>setNombre(e.target.value)} style={inputBigStyle} className="input-focus mobile-input-full" />
                         <label style={labelStyle}>Fecha de Nacimiento</label>
-                        <input type="date" value={fechaNacimiento} onChange={e=>setFechaNacimiento(e.target.value)} style={inputBigStyle} className="input-focus" />
+                        <input type="date" value={fechaNacimiento} onChange={e=>setFechaNacimiento(e.target.value)} style={inputBigStyle} className="input-focus mobile-input-full" />
                         
                         <div style={{ backgroundColor: '#fff3cd', padding: '20px', borderRadius: '15px', borderLeft: '5px solid #ffc107', marginBottom: '25px', textAlign: 'left', width: '100%', boxSizing: 'border-box' }}>
-                            <label style={{fontSize:'14px', fontWeight:'bold', color:'#856404', marginBottom:'10px', display: 'flex', alignItems: 'center', gap: '8px'}}><FaExclamationTriangle /> Dinero Disponible (Cascada Actual)</label>
-                            <p style={{ margin: '0 0 15px 0', fontSize: '13px', color: '#856404', lineHeight: '1.4' }}>¿Cuánto dinero tienes <b>HOY</b> para gastar o sobrevivir hasta tu próximo pago? <br/><br/><i>(⚠️ <b>NO</b> incluyas ahorros, inversiones ni fondos de emergencia. Solo el dinero "suelto" de este ciclo).</i></p>
+                            <label style={{fontSize:'14px', fontWeight:'bold', color:'#856404', marginBottom:'10px', display: 'flex', alignItems: 'center', gap: '8px'}}><FaExclamationTriangle /> Dinero Disponible</label>
+                            <p style={{ margin: '0 0 15px 0', fontSize: '13px', color: '#856404', lineHeight: '1.4' }}>¿Cuánto dinero tienes <b>HOY</b> para gastar hasta tu próximo pago? (Sin ahorros).</p>
                             
                             <div style={{position: 'relative', width: '100%'}}>
                                 <span style={dollarIcon}>$</span>
-                                <input type="number" min="0" onKeyDown={preventMinus} value={saldo} onChange={e=>setSaldo(e.target.value)} style={{...inputBigStyle, paddingLeft:'40px', fontSize: '24px', color: '#28a745', marginBottom: 0, border: '1px solid #ffeeba'}} placeholder="0.00" className="input-focus" />
+                                <input type="number" min="0" onKeyDown={preventMinus} value={saldo} onChange={e=>setSaldo(e.target.value)} style={{...inputBigStyle, paddingLeft:'40px', fontSize: '24px', color: '#28a745', marginBottom: 0, border: '1px solid #ffeeba'}} placeholder="0.00" className="input-focus mobile-input-full" />
                             </div>
                         </div>
 
@@ -261,16 +271,16 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                 {step === 3 && (
                     <div className="step-container" style={stepStyle}>
                         <div style={{...iconBadge, background:'#e6f4ea', color:'#28a745'}}><FaMoneyBillWave/></div>
-                        <h2 style={titleStyle}>Tu Motor Financiero</h2>
-                        <p style={descStyle}>Añade tus fuentes de ingreso (sueldo, ventas, mesada).</p>
+                        <h2 className="title-responsive" style={titleStyle}>Tu Motor Financiero</h2>
+                        <p className="desc-responsive" style={descStyle}>Añade tus fuentes de ingreso (sueldo, ventas, mesada).</p>
                         
                         {ingresos.map((ing, i) => (
-                            <div key={i} style={{display:'flex', gap:'10px', width:'100%', marginBottom:'15px', background: '#f8f9fa', padding: '15px', borderRadius: '15px', border: '1px solid #e1e5ee', boxSizing: 'border-box'}}>
-                                <div style={{position: 'relative', flex: 2}}>
+                            <div key={i} className="mobile-flex-col" style={{display:'flex', gap:'10px', width:'100%', marginBottom:'15px', background: '#f8f9fa', padding: '15px', borderRadius: '15px', border: '1px solid #e1e5ee', boxSizing: 'border-box'}}>
+                                <div style={{position: 'relative', flex: 2, width: '100%'}}>
                                     <span style={{...dollarIcon, top: '12px', fontSize: '16px'}}>$</span>
-                                    <input type="number" min="0" onKeyDown={preventMinus} placeholder="Monto" value={ing.monto} onChange={e => updateIngreso(i, 'monto', e.target.value)} style={{...inputBigStyle, paddingLeft:'30px', margin: 0, border: 'none', background: '#fff'}} className="input-focus" />
+                                    <input type="number" min="0" onKeyDown={preventMinus} placeholder="Monto" value={ing.monto} onChange={e => updateIngreso(i, 'monto', e.target.value)} style={{...inputBigStyle, paddingLeft:'30px', margin: 0, border: 'none', background: '#fff'}} className="input-focus mobile-input-full" />
                                 </div>
-                                <select value={ing.frecuencia} onChange={e => updateIngreso(i, 'frecuencia', e.target.value)} style={{...inputBigStyle, flex: 2, margin: 0, border: 'none', background: '#fff', cursor: 'pointer'}} className="input-focus">
+                                <select value={ing.frecuencia} onChange={e => updateIngreso(i, 'frecuencia', e.target.value)} style={{...inputBigStyle, flex: 2, margin: 0, border: 'none', background: '#fff', cursor: 'pointer'}} className="input-focus mobile-input-full">
                                     <option value="Diario">Diario</option>
                                     <option value="Semanal">Semanal</option>
                                     <option value="Quincenal">Quincenal</option>
@@ -288,22 +298,17 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                 {step === 4 && (
                     <div className="step-container" style={stepStyle}>
                         <div style={{...iconBadge, background:'#f3e8ff', color:'#6f42c1'}}><FaSyncAlt/></div>
-                        <h2 style={titleStyle}>Confirmación de Ciclo</h2>
+                        <h2 className="title-responsive" style={titleStyle}>Confirmación de Ciclo</h2>
                         
                         <div style={{background:'linear-gradient(135deg, #f8f9fa 0%, #eef3ff 100%)', padding:'25px', borderRadius:'20px', border:'2px solid #007bff', marginBottom:'25px', boxShadow: '0 10px 20px rgba(0,123,255,0.1)', width: '100%', boxSizing: 'border-box'}}>
                             <p style={{color:'#2f3542', fontSize:'15px', margin:0, lineHeight: '1.5'}}>
-                                Basado en tu ingreso principal, tu <b>Ciclo Maestro</b> sugerido es <b style={{color: '#007bff', fontSize: '20px', display: 'block', margin: '10px 0'}}>{ciclo.toUpperCase()}</b>
+                                Basado en tus ingresos, tu <b>Ciclo Maestro</b> sugerido es <b style={{color: '#007bff', fontSize: '20px', display: 'block', margin: '10px 0'}}>{ciclo.toUpperCase()}</b>
                                 Te estimamos un ingreso de <span style={{color:'#28a745', fontWeight:'bold'}}>${totalIngresos.toLocaleString(undefined, {minimumFractionDigits:2})}</span> por ciclo.
                             </p>
                         </div>
 
-                        <div style={tipBox}>
-                            <FaLightbulb style={{color: '#f39c12', fontSize: '24px', flexShrink: 0}} />
-                            <span style={{fontSize: '13px', color: '#2f3542', textAlign: 'left'}}>Tus metas y alertas se recalcularán automáticamente a este ciclo. Si prefieres otro, cámbialo abajo.</span>
-                        </div>
-
                         <label style={labelStyle}>Modificar Ciclo Maestro:</label>
-                        <select value={ciclo} onChange={e=>setCiclo(e.target.value)} style={{...inputBigStyle, cursor: 'pointer', marginBottom: '20px'}} className="input-focus">
+                        <select value={ciclo} onChange={e=>setCiclo(e.target.value)} style={{...inputBigStyle, cursor: 'pointer', marginBottom: '20px'}} className="input-focus mobile-input-full">
                             <option value="Diario">Diario</option>
                             <option value="Semanal">Semanal</option>
                             <option value="Quincenal">Quincenal</option>
@@ -319,106 +324,45 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                 {step === 5 && (
                     <div className="step-container" style={stepStyle}>
                         <div style={{...iconBadge, background:'#fff3cd', color:'#ffc107'}}><FaBoxOpen/></div>
-                        <h2 style={titleStyle}>Tus 3 Administradores</h2>
-                        <p style={descStyle}>¿Cuánto destinarás por ciclo <b>({ciclo})</b>? Abre la calculadora (🧮) para convertir pagos automáticamente.</p>
+                        <h2 className="title-responsive" style={titleStyle}>Tus 3 Administradores</h2>
+                        <p className="desc-responsive" style={descStyle}>Reparte tu dinero por ciclo <b>({ciclo})</b>.</p>
                         
                         <div style={{textAlign:'left', width:'100%', marginBottom:'20px'}}>
                             
-                            {/* CAJON: GASTOS FIJOS */}
-                            <div style={{...adminBox, borderColor: calculadoraAbierta === 'Gastos Fijos' ? '#007bff' : '#e1e5ee'}}>
-                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                                    <div><b style={{fontSize: '16px'}}>🏠 Gastos Fijos</b><br/><span style={adminDesc}>Renta, Luz, Agua, Colegiatura</span></div>
-                                    <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-                                        <button onClick={() => abrirCalculadora('Gastos Fijos')} style={{...calcBtnStyle, background: calculadoraAbierta === 'Gastos Fijos' ? '#007bff' : '#f8f9fa', color: calculadoraAbierta === 'Gastos Fijos' ? '#fff' : '#007bff'}} title="Calculadora Inteligente">
-                                            {calculadoraAbierta === 'Gastos Fijos' ? <FaTimes /> : <FaCalculator />}
-                                        </button>
-                                        <input type="number" min="0" onKeyDown={preventMinus} placeholder="$ Meta" value={admins['Gastos Fijos']} onChange={e=>setAdmins({...admins, 'Gastos Fijos': e.target.value})} style={inputMini} className="input-focus" />
-                                    </div>
-                                </div>
-                                {calculadoraAbierta === 'Gastos Fijos' && (
-                                    <div className="calc-panel" style={calcInnerBox}>
-                                        <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px'}}>
-                                            <FaCalculator style={{color: '#007bff'}}/>
-                                            <h4 style={{fontSize:'14px', color:'#007bff', margin:0}}>Conversión automática a {ciclo}</h4>
+                            {['Gastos Fijos', 'Gastos Variables', 'Ahorro'].map(adm => (
+                                <div key={adm} style={{...adminBox, borderColor: calculadoraAbierta === adm ? '#007bff' : '#e1e5ee'}}>
+                                    <div className="mobile-flex-col" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                        <div>
+                                            <b style={{fontSize: '16px'}}>{adm === 'Gastos Fijos' ? '🏠 ' : adm === 'Gastos Variables' ? '🍔 ' : '🐷 '}{adm}</b>
+                                            <br/><span style={adminDesc}>{adm === 'Gastos Fijos' ? 'Renta, Luz, Agua' : adm === 'Gastos Variables' ? 'Comida, Gasolina' : 'Tu futuro'}</span>
                                         </div>
-                                        
-                                        {itemsCalc.map((item, i) => (
-                                            <div key={i} style={{display:'flex', gap:'8px', marginBottom:'12px', alignItems: 'center', width: '100%'}}>
-                                                <input type="text" placeholder="Ref." value={item.concepto} onChange={e=>updateCalcItem(i, 'concepto', e.target.value)} style={{...inputCalc, width: '28%', flexShrink: 0}} className="input-focus" />
-                                                <div style={{position: 'relative', flex: 1, minWidth: '105px'}}>
-                                                    <span style={{position:'absolute', left:'12px', top:'50%', transform:'translateY(-50%)', color:'#a4b0be', fontWeight:'bold', pointerEvents: 'none'}}>$</span>
-                                                    <input type="number" min="0" onKeyDown={preventMinus} placeholder="0.00" value={item.monto} onChange={e=>updateCalcItem(i, 'monto', e.target.value)} style={{...inputCalc, width: '100%', paddingLeft: '26px'}} className="input-focus" />
+                                        <div style={{display: 'flex', gap: '8px', alignItems: 'center', width: '100%', justifyContent: 'flex-end'}}>
+                                            {adm !== 'Ahorro' && (
+                                                <button onClick={() => abrirCalculadora(adm)} style={{...calcBtnStyle, background: calculadoraAbierta === adm ? '#007bff' : '#f8f9fa', color: calculadoraAbierta === adm ? '#fff' : '#007bff'}}>
+                                                    {calculadoraAbierta === adm ? <FaTimes /> : <FaCalculator />}
+                                                </button>
+                                            )}
+                                            <input type="number" min="0" onKeyDown={preventMinus} placeholder="$ Meta" value={admins[adm]} onChange={e=>setAdmins({...admins, [adm]: e.target.value})} style={inputMini} className="input-focus mobile-input-full" />
+                                        </div>
+                                    </div>
+                                    {calculadoraAbierta === adm && (
+                                        <div className="calc-panel" style={calcInnerBox}>
+                                            <h4 style={{fontSize:'14px', color:'#007bff', margin:'0 0 15px 0'}}>Conversión a {ciclo}</h4>
+                                            {itemsCalc.map((item, i) => (
+                                                <div key={i} className="calc-mobile-flex" style={{display:'flex', gap:'8px', marginBottom:'12px', width: '100%'}}>
+                                                    <input type="text" placeholder="Ej. Luz" value={item.concepto} onChange={e=>updateCalcItem(i, 'concepto', e.target.value)} style={{...inputCalc, width: '30%'}} className="mobile-input-full" />
+                                                    <input type="number" min="0" onKeyDown={preventMinus} placeholder="$" value={item.monto} onChange={e=>updateCalcItem(i, 'monto', e.target.value)} style={{...inputCalc, width: '30%'}} className="mobile-input-full" />
+                                                    <select value={item.frecuencia} onChange={e=>updateCalcItem(i, 'frecuencia', e.target.value)} style={{...inputCalc, width: '40%'}} className="mobile-input-full">
+                                                        <option value="Diario">Día</option><option value="Semanal">Sem</option><option value="Quincenal">Quince</option><option value="Mensual">Mes</option><option value="Anual">Año</option>
+                                                    </select>
                                                 </div>
-                                                <select value={item.frecuencia} onChange={e=>updateCalcItem(i, 'frecuencia', e.target.value)} style={{...inputCalc, width: '32%', flexShrink: 0, cursor: 'pointer', padding: '10px 5px'}} className="input-focus">
-                                                    <option value="Diario">Diario</option>
-                                                    <option value="Semanal">Semanal</option>
-                                                    <option value="Quincenal">Quince</option>
-                                                    <option value="Mensual">Mes</option>
-                                                    <option value="Anual">Anual</option>
-                                                </select>
-                                            </div>
-                                        ))}
-
-                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', padding: '10px 15px', background: '#f8f9fa', borderRadius: '10px'}}>
-                                            <button onClick={()=>setItemsCalc([...itemsCalc, {concepto:'', monto:'', frecuencia:'Mensual'}])} style={addBtnMini}>+ Añadir gasto</button>
-                                            <div style={{fontSize: '15px', fontWeight: 'bold'}}>Total {ciclo}: <span style={{color:'#28a745'}}>${calcularSumaCalculadora().toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
+                                            ))}
+                                            <button onClick={()=>setItemsCalc([...itemsCalc, {concepto:'', monto:'', frecuencia:'Mensual'}])} style={addBtnMini}>+ Añadir</button>
+                                            <button onClick={aplicarCalculo} style={btnAplicarCalc}>Aplicar Total</button>
                                         </div>
-                                        <button type="button" onClick={aplicarCalculo} style={btnAplicarCalc} className="btn-hover">Aplicar Total al Cajón</button>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* CAJON: GASTOS VARIABLES */}
-                            <div style={{...adminBox, borderColor: calculadoraAbierta === 'Gastos Variables' ? '#007bff' : '#e1e5ee'}}>
-                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                                    <div><b style={{fontSize: '16px'}}>🍔 Gastos Variables</b><br/><span style={adminDesc}>Comida diaria, Gasolina, Salidas</span></div>
-                                    <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-                                        <button onClick={() => abrirCalculadora('Gastos Variables')} style={{...calcBtnStyle, background: calculadoraAbierta === 'Gastos Variables' ? '#007bff' : '#f8f9fa', color: calculadoraAbierta === 'Gastos Variables' ? '#fff' : '#007bff'}} title="Calculadora Inteligente">
-                                            {calculadoraAbierta === 'Gastos Variables' ? <FaTimes /> : <FaCalculator />}
-                                        </button>
-                                        <input type="number" min="0" onKeyDown={preventMinus} placeholder="$ Meta" value={admins['Gastos Variables']} onChange={e=>setAdmins({...admins, 'Gastos Variables': e.target.value})} style={inputMini} className="input-focus" />
-                                    </div>
+                                    )}
                                 </div>
-                                {calculadoraAbierta === 'Gastos Variables' && (
-                                    <div className="calc-panel" style={calcInnerBox}>
-                                        <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px'}}>
-                                            <FaCalculator style={{color: '#007bff'}}/>
-                                            <h4 style={{fontSize:'14px', color:'#007bff', margin:0}}>Conversión automática a {ciclo}</h4>
-                                        </div>
-                                        
-                                        {itemsCalc.map((item, i) => (
-                                            <div key={i} style={{display:'flex', gap:'8px', marginBottom:'12px', alignItems: 'center', width: '100%'}}>
-                                                <input type="text" placeholder="Ref." value={item.concepto} onChange={e=>updateCalcItem(i, 'concepto', e.target.value)} style={{...inputCalc, width: '28%', flexShrink: 0}} className="input-focus" />
-                                                <div style={{position: 'relative', flex: 1, minWidth: '105px'}}>
-                                                    <span style={{position:'absolute', left:'12px', top:'50%', transform:'translateY(-50%)', color:'#a4b0be', fontWeight:'bold', pointerEvents: 'none'}}>$</span>
-                                                    <input type="number" min="0" onKeyDown={preventMinus} placeholder="0.00" value={item.monto} onChange={e=>updateCalcItem(i, 'monto', e.target.value)} style={{...inputCalc, width: '100%', paddingLeft: '26px'}} className="input-focus" />
-                                                </div>
-                                                <select value={item.frecuencia} onChange={e=>updateCalcItem(i, 'frecuencia', e.target.value)} style={{...inputCalc, width: '32%', flexShrink: 0, cursor: 'pointer', padding: '10px 5px'}} className="input-focus">
-                                                    <option value="Diario">Diario</option>
-                                                    <option value="Semanal">Semanal</option>
-                                                    <option value="Quincenal">Quince</option>
-                                                    <option value="Mensual">Mes</option>
-                                                    <option value="Anual">Anual</option>
-                                                </select>
-                                            </div>
-                                        ))}
-
-                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', padding: '10px 15px', background: '#f8f9fa', borderRadius: '10px'}}>
-                                            <button onClick={()=>setItemsCalc([...itemsCalc, {concepto:'', monto:'', frecuencia:'Mensual'}])} style={addBtnMini}>+ Añadir gasto</button>
-                                            <div style={{fontSize: '15px', fontWeight: 'bold'}}>Total {ciclo}: <span style={{color:'#28a745'}}>${calcularSumaCalculadora().toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span></div>
-                                        </div>
-                                        <button type="button" onClick={aplicarCalculo} style={btnAplicarCalc} className="btn-hover">Aplicar Total al Cajón</button>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* CAJON: AHORRO */}
-                            <div style={adminBox}>
-                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                                    <div><b style={{fontSize: '16px'}}>🐷 Ahorro Intocable</b><br/><span style={adminDesc}>Págate a ti mismo primero</span></div>
-                                    <input type="number" min="0" onKeyDown={preventMinus} placeholder="$ Meta" value={admins['Ahorro']} onChange={e=>setAdmins({...admins, 'Ahorro': e.target.value})} style={inputMini} className="input-focus" />
-                                </div>
-                            </div>
+                            ))}
 
                         </div>
                         <button onClick={handleNext} style={btnStyle} className="btn-hover">Siguiente <FaArrowRight /></button>
@@ -428,39 +372,22 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                 {step === 6 && (
                     <div className="step-container" style={stepStyle}>
                         <div style={{...iconBadge, background:'#ffebee', color:'#dc3545'}}><FaExclamationTriangle/></div>
-                        <h2 style={titleStyle}>Metas y Deudas</h2>
-                        <p style={descStyle}>Añade tus propios cajones (Suscripciones, Viajes). <b>Si tienes deudas, agrégalas como Prioridad.</b></p>
+                        <h2 className="title-responsive" style={titleStyle}>Metas y Deudas</h2>
+                        <p className="desc-responsive" style={descStyle}>Añade tus propios cajones. Si tienes deudas, agrégalas como Prioridad #1.</p>
                         
-                        <div style={{display:'flex', gap:'10px', flexWrap:'wrap', justifyContent:'center', marginBottom:'25px', width: '100%'}}>
-                            {!tieneDeuda && (
-                                <button onClick={toggleDeuda} style={{...sugBtn, border:'2px solid #dc3545', color:'#dc3545', background:'rgba(220, 53, 69, 0.1)', flex: 1}} className="btn-hover pulse">
-                                    🚨 Tengo Deudas
-                                </button>
-                            )}
-                            <button onClick={addCajonPersonalizado} style={{...sugBtn, border:'2px dashed #007bff', color:'#007bff', background:'#eef3ff', flex: 1}} className="btn-hover">
-                                + Meta Personalizada
-                            </button>
+                        <div className="mobile-flex-col" style={{display:'flex', gap:'10px', marginBottom:'25px', width: '100%'}}>
+                            {!tieneDeuda && <button onClick={toggleDeuda} style={{...sugBtn, flex: 1, color:'#dc3545'}}>🚨 Deudas</button>}
+                            <button onClick={addCajonPersonalizado} style={{...sugBtn, flex: 1, color:'#007bff'}}>+ Meta Personal</button>
                         </div>
 
-                        {tieneDeuda && (
-                            <div style={{...tipBox, background: 'rgba(220, 53, 69, 0.1)', borderLeft: '4px solid #dc3545', width: '100%', boxSizing: 'border-box'}}>
-                                <FaExclamationTriangle style={{color: '#dc3545', fontSize: '24px', flexShrink: 0}} />
-                                <span style={{fontSize: '13px', color: '#dc3545', fontWeight: 'bold', textAlign: 'left'}}>Regla de Oro: La DEUDA será tu Prioridad #1. Sanar tus finanzas es lo primero.</span>
+                        {cajonesExtra.map((c, i) => (
+                            <div key={i} style={adminBox}>
+                                <div className="mobile-flex-col" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                    <b style={{width: '100%'}}>{c.nombre}</b>
+                                    <input type="number" min="0" onKeyDown={preventMinus} placeholder="$ Meta" value={c.monto} onChange={e=>updateCajonExtra(i, e.target.value)} style={inputMini} className="input-focus mobile-input-full" />
+                                </div>
                             </div>
-                        )}
-
-                        {cajonesExtra.length > 0 && (
-                            <div style={{width:'100%', textAlign:'left', marginBottom:'20px'}}>
-                                {cajonesExtra.map((c, i) => (
-                                    <div key={i} style={{...adminBox, border: c.nombre === 'Deuda' ? '2px solid #dc3545' : '1px solid #e1e5ee', marginBottom: '10px', padding: '15px'}}>
-                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                                            <b style={{color: c.nombre==='Deuda'?'#dc3545':'#2f3542', fontSize: '15px'}}>{c.nombre === 'Deuda' ? '🚨 DEUDA TOTAL' : `🎯 ${c.nombre}`}</b>
-                                            <input type="number" min="0" onKeyDown={preventMinus} placeholder="$ Meta" value={c.monto} onChange={e=>updateCajonExtra(i, e.target.value)} style={inputMini} className="input-focus" />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        ))}
                         <button onClick={handleNext} style={btnStyle} className="btn-hover">Siguiente <FaArrowRight /></button>
                     </div>
                 )}
@@ -468,34 +395,10 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                 {step === 7 && (
                     <div className="step-container" style={stepStyle}>
                         <div style={{...iconBadge, background:'#2f3542', color:'#fff'}}><FaShieldAlt/></div>
-                        <h2 style={titleStyle}>Blindaje de Bóveda</h2>
-                        
-                        <div style={{...tipBox, width: '100%', boxSizing: 'border-box'}}>
-                            <FaKey style={{color: '#007bff', fontSize: '20px', flexShrink: 0}} />
-                            <span style={{fontSize: '13px', color: '#2f3542', textAlign: 'left'}}>Crea un NIP. Se te pedirá para retirar dinero de tus Bóvedas Intocables o para modificar administradores base.</span>
-                        </div>
-
-                        <div style={{background: '#f8f9fa', padding: '30px', borderRadius: '20px', marginTop: '10px', border: '1px solid #e1e5ee', width: '100%', boxSizing: 'border-box'}}>
-                            <input 
-                                type="password" 
-                                maxLength="4" 
-                                placeholder="••••" 
-                                value={pin} 
-                                onChange={e=>setPin(e.target.value.replace(/[^0-9]/g, ''))} 
-                                style={{
-                                    width: '100%', background: '#fff', border: '2px solid #2f3542', 
-                                    borderRadius: '15px', fontSize: '40px', letterSpacing: '25px', 
-                                    textAlign: 'center', padding: '15px', outline: 'none', color: '#007bff',
-                                    boxSizing: 'border-box'
-                                }} 
-                                className="input-focus" 
-                            />
-                            <p style={{fontSize: '12px', color: '#a4b0be', margin: '15px 0 0 0'}}>Ingresa 4 números exactos.</p>
-                        </div>
-                        
-                        <button onClick={handleFinalize} style={{...btnStyle, background:'linear-gradient(135deg, #10ac84, #28a745)', boxShadow: '0 10px 25px rgba(40, 167, 69, 0.3)'}} className="btn-hover">
-                            ¡Activar mi Fortaleza! <FaCheckCircle />
-                        </button>
+                        <h2 className="title-responsive" style={titleStyle}>Blindaje de Seguridad</h2>
+                        <p className="desc-responsive" style={descStyle}>Crea un NIP de 4 dígitos para proteger tus ahorros.</p>
+                        <input type="password" maxLength="4" placeholder="••••" value={pin} onChange={e=>setPin(e.target.value.replace(/[^0-9]/g, ''))} style={{...inputBigStyle, fontSize:'40px', textAlign:'center', letterSpacing:'10px'}} className="mobile-input-full" />
+                        <button onClick={handleFinalize} style={{...btnStyle, background:'#10ac84'}}>¡Activar mi Fortaleza! <FaCheckCircle /></button>
                     </div>
                 )}
             </div>
@@ -518,13 +421,12 @@ const labelStyle = { display:'block', fontSize:'14px', fontWeight:'bold', color:
 const adminBox = { background:'#fff', border:'2px solid', padding:'20px', borderRadius:'20px', marginBottom:'15px', boxShadow: '0 5px 15px rgba(0,0,0,0.02)', transition: 'all 0.2s', width: '100%', boxSizing: 'border-box' };
 const adminDesc = { fontSize:'13px', color:'#747d8c', display: 'block', marginTop: '4px' };
 const inputMini = { padding:'12px', borderRadius:'12px', border:'2px solid #e1e5ee', outline:'none', fontWeight:'bold', fontSize:'16px', width: '110px', textAlign: 'center', background: '#f8f9fa', color: '#2f3542', transition: 'all 0.2s', margin: 0, boxSizing: 'border-box' };
-const sugBtn = { padding:'12px 20px', borderRadius:'15px', fontWeight:'bold', cursor:'pointer', fontSize:'14px', transition: 'all 0.2s' };
+const sugBtn = { padding:'12px 20px', borderRadius:'15px', fontWeight:'bold', cursor:'pointer', fontSize:'14px', transition: 'all 0.2s', width: '100%', boxSizing: 'border-box' };
 const tipBox = { display: 'flex', alignItems: 'center', gap: '15px', background: '#fff9e6', padding: '15px 20px', borderRadius: '15px', borderLeft: '4px solid #f39c12', marginBottom: '25px', textAlign: 'left', width: '100%', boxSizing: 'border-box' };
 
 const calcBtnStyle = { padding: '14px', borderRadius: '12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', transition: 'all 0.2s' };
 const calcInnerBox = { marginTop: '20px', padding: '20px', borderTop: '1px dashed #e1e5ee', background: '#fcfcfc', borderRadius: '0 0 15px 15px', width: '100%', boxSizing: 'border-box' };
 
-// Cajas milimétricas
 const inputCalc = { padding: '10px', borderRadius: '10px', border: '1px solid #dfe6e9', outline: 'none', fontSize: '14px', background: '#fff', boxSizing: 'border-box' };
 const addBtnMini = { background: 'none', border: 'none', color: '#007bff', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' };
 const btnAplicarCalc = { width: '100%', padding: '14px', background: '#007bff', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', marginTop: '15px', cursor: 'pointer', transition: '0.2s', fontSize: '15px', boxSizing: 'border-box' };
