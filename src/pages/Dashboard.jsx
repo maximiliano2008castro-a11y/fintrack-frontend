@@ -20,6 +20,7 @@ import {
 const Dashboard = () => {
     const navigate = useNavigate();
     
+    // 🔴 ESTADO INICIAL
     const [isLoading, setIsLoading] = useState(true);
     const [isFirstTime, setIsFirstTime] = useState(false); 
 
@@ -97,20 +98,38 @@ const Dashboard = () => {
         return "OK";
     };
 
+    // 🔴 1. LÓGICA DE CARGA MEJORADA PARA EVITAR REPETIR BIENVENIDA
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userEmail = localStorage.getItem('userEmail');
-        if (!token || !userEmail) { navigate('/'); return; }
+        
+        // Si no hay token, lo mandamos al login
+        if (!token || !userEmail) { 
+            navigate('/'); 
+            return; 
+        }
         
         let db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
-        if (!db[userEmail]) { db[userEmail] = { password: '123' }; localStorage.setItem('finTrack_DB', JSON.stringify(db)); }
+        
+        // Si el usuario no existe en la BD local, creamos un perfil básico
+        if (!db[userEmail]) { 
+            db[userEmail] = { password: '123', isConfigured: false }; 
+            localStorage.setItem('finTrack_DB', JSON.stringify(db)); 
+        }
         
         const userData = db[userEmail];
         setEmail(userEmail);
+        
+        // Verificamos la LLAVE DE ACCESO: isConfigured
+        if (userData.isConfigured !== true) {
+            setIsFirstTime(true);
+            setIsLoading(false);
+            return; // Detenemos la carga aquí para que muestre la Bienvenida
+        }
+
+        // Si ya está configurado, cargamos todo de golpe
         setUserName(userData.nombre || '');
         const config = userData.configGlobal || {};
-        
-        if (!config.ingresos || config.ingresos.length === 0) setIsFirstTime(true);
 
         setFechaNacimiento(userData.fechaNacimiento || '');
         setPinSeguridad(userData.pinSeguridad || '');
@@ -129,8 +148,77 @@ const Dashboard = () => {
         setHistorial(userData.historial || []);
         setEventosCalendario(userData.agenda || []);
         
+        // Aseguramos que la bienvenida esté oculta y quitamos el loading
+        setIsFirstTime(false);
         setIsLoading(false);
+        
     }, [navigate]);
+
+    // 🔴 2. LÓGICA AL FINALIZAR LA BIENVENIDA (CREA LA LLAVE DE ACCESO)
+    const handleFinalizarBienvenida = (datos) => {
+        let db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
+        if(!db[email]) db[email] = {};
+        
+        // Guardamos los datos
+        db[email].nombre = datos.nombre; 
+        db[email].fechaNacimiento = datos.fechaNacimiento; 
+        db[email].pinSeguridad = datos.pin;
+        db[email].configGlobal = { 
+            saldoActual: datos.saldo, 
+            boveda: 0, 
+            cajaFuerte: 0, 
+            cicloMaestro: datos.ciclo, 
+            diaInicioCiclo: datos.diaInicio, 
+            ultimaFechaReinicio: '', 
+            ingresos: datos.ingresos, 
+            configuraciones: datos.cajones, 
+            ordenCajones: datos.ordenCajones 
+        };
+        
+        // ✨ ESTA ES LA LLAVE MÁGICA: Le decimos a la base de datos que ya configuró su app
+        db[email].isConfigured = true;
+
+        localStorage.setItem('finTrack_DB', JSON.stringify(db));
+        
+        // Actualizamos los estados en pantalla
+        setUserName(datos.nombre); 
+        setFechaNacimiento(datos.fechaNacimiento); 
+        setPinSeguridad(datos.pin); 
+        setSaldoActual(datos.saldo); 
+        setCicloMaestro(datos.ciclo); 
+        setDiaInicioCiclo(datos.diaInicio);
+        setIngresos(datos.ingresos); 
+        setCajones(datos.cajones); 
+        setOrdenCajones(datos.ordenCajones);
+        
+        // Ocultamos la Bienvenida
+        setIsFirstTime(false);
+    };
+
+    // 🔴 3. AUTOGUARDADO (Mantenemos la llave isConfigured)
+    useEffect(() => {
+        // Solo guardamos si ya no está en modo loading ni en la bienvenida
+        if (!email || isFirstTime || isLoading) return;
+        
+        let db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
+        if (!db[email]) db[email] = {}; 
+        
+        db[email].configGlobal = { saldoActual, boveda, cajaFuerte, cicloMaestro, diaInicioCiclo, ultimaFechaReinicio, ingresos, configuraciones: cajones, ordenCajones };
+        db[email].historial = historial; 
+        db[email].agenda = eventosCalendario; 
+        db[email].nombre = userName; 
+        db[email].fechaNacimiento = fechaNacimiento;
+        db[email].isConfigured = true; // Aseguramos que la llave no se borre
+        
+        if (pinSeguridad) db[email].pinSeguridad = pinSeguridad;
+        
+        localStorage.setItem('finTrack_DB', JSON.stringify(db));
+    }, [saldoActual, cajones, ordenCajones, boveda, cajaFuerte, historial, eventosCalendario, userName, fechaNacimiento, pinSeguridad, cicloMaestro, diaInicioCiclo, ultimaFechaReinicio, ingresos, email, isFirstTime, isLoading]);
+
+
+    // ===============================================
+    // EL RESTO DEL CÓDIGO SE MANTIENE INTACTO
+    // ===============================================
 
     useEffect(() => {
         if (isLoading || isFirstTime || !cicloMaestro) return;
@@ -217,28 +305,6 @@ const Dashboard = () => {
         if (montoNuevo > 0) { registrarEnHistorial(`¡Inicio de Ciclo! (${cicloMaestro})`, montoNuevo, 'pago', saldoActual, saldoActual + montoNuevo); setSaldoActual(p => p + montoNuevo); }
         setIsCorteModalOpen(false); alert(`✅ ¡Tus cascadas se han reiniciado con éxito para este nuevo ciclo!`);
     };
-
-    const handleFinalizarBienvenida = (datos) => {
-        let db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
-        if(!db[email]) db[email] = {};
-        db[email].nombre = datos.nombre; db[email].fechaNacimiento = datos.fechaNacimiento; db[email].pinSeguridad = datos.pin;
-        db[email].configGlobal = { saldoActual: datos.saldo, boveda: 0, cajaFuerte: 0, cicloMaestro: datos.ciclo, diaInicioCiclo: datos.diaInicio, ultimaFechaReinicio: '', ingresos: datos.ingresos, configuraciones: datos.cajones, ordenCajones: datos.ordenCajones };
-        localStorage.setItem('finTrack_DB', JSON.stringify(db));
-        setUserName(datos.nombre); setFechaNacimiento(datos.fechaNacimiento); setPinSeguridad(datos.pin); 
-        setSaldoActual(datos.saldo); setCicloMaestro(datos.ciclo); setDiaInicioCiclo(datos.diaInicio);
-        setIngresos(datos.ingresos); setCajones(datos.cajones); setOrdenCajones(datos.ordenCajones);
-        setIsFirstTime(false);
-    };
-
-    useEffect(() => {
-        if (!email || isFirstTime || isLoading) return;
-        let db = JSON.parse(localStorage.getItem('finTrack_DB') || '{}');
-        if (!db[email]) db[email] = {}; 
-        db[email].configGlobal = { saldoActual, boveda, cajaFuerte, cicloMaestro, diaInicioCiclo, ultimaFechaReinicio, ingresos, configuraciones: cajones, ordenCajones };
-        db[email].historial = historial; db[email].agenda = eventosCalendario; db[email].nombre = userName; db[email].fechaNacimiento = fechaNacimiento;
-        if (pinSeguridad) db[email].pinSeguridad = pinSeguridad;
-        localStorage.setItem('finTrack_DB', JSON.stringify(db));
-    }, [saldoActual, cajones, ordenCajones, boveda, cajaFuerte, historial, eventosCalendario, userName, fechaNacimiento, pinSeguridad, cicloMaestro, diaInicioCiclo, ultimaFechaReinicio, ingresos, email, isFirstTime, isLoading]);
 
     const handleLogout = () => { localStorage.clear(); navigate('/'); };
 
@@ -414,7 +480,6 @@ const Dashboard = () => {
     const handleIngresoChange = (index, field, value) => { const nI = [...configForm.ingresos]; nI[index][field] = value; setConfigForm({ ...configForm, ingresos: nI }); };
 
     const handleAddMoney = () => { const motivo = window.prompt('💰 Motivo del ingreso:'); if (!motivo) return; const m = window.prompt('¿Cuánto entró?'); const montoIngresado = parseFloat(m); if (m && !isNaN(m) && montoIngresado > 0) { registrarEnHistorial(motivo, montoIngresado, 'pago', saldoActual, saldoActual + montoIngresado); setSaldoActual(p => p + montoIngresado); } };
-    
     const handleRemoveMoney = () => {
         const motivo = window.prompt('💸 Gasto:'); if (!motivo) return; const m = window.prompt('¿Cuánto costó?'); const montoGastado = parseFloat(m);
         if (m && !isNaN(m) && montoGastado > 0) {
@@ -466,11 +531,12 @@ const Dashboard = () => {
     const totalAcumuladoRetos = Object.keys(cajones).reduce((acc, key) => acc + ((key.startsWith('Reto:') || key.includes('Capricho:') || key.startsWith('Meta:')) ? (cajones[key].acumulado || 0) : 0), 0);
 
     if (isLoading) return <div style={{height: '100vh', backgroundColor: '#f4f7f6'}}></div>;
+    
+    // 🔴 LA VERIFICACIÓN: SI ES TU PRIMERA VEZ MUESTRA LA BIENVENIDA, SI NO, NO.
     if (isFirstTime) return <div className="app-wrapper" style={appWrapperStyle}><BienvenidaFullScreen onFinish={handleFinalizarBienvenida} /></div>;
 
     return (
         <div className="app-wrapper" style={appWrapperStyle}>
-            {/* 🔴 ESTILOS RESPONSIVE AÑADIDOS */}
             <style>{`
                 @media (max-width: 768px) {
                     .app-wrapper { flex-direction: column !important; }
@@ -616,6 +682,7 @@ const Dashboard = () => {
                 </div>
             )}
 
+            {/* FULLSCREENS */}
             <CalendarFullScreen isOpen={isFullScreenCalendar} onClose={() => setIsFullScreenCalendar(false)} eventos={eventosCalendario} historial={historial} onDeleteEvent={handleDeleteEventFromCalendar} onSaveEvent={handleSaveEventFromCalendar} nombresMeses={['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']} diasSemana={['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa']} mesActualGlobal={mesActual} anioActualGlobal={anioActual} />
             <HistorialFullScreen isOpen={isHistorialOpen} onClose={() => setIsHistorialOpen(false)} historial={historial} />
             <MetasFullScreen isOpen={isMetasOpen} onClose={() => setIsMetasOpen(false)} onAddCajon={agregarCajonDesdeMetas} onReplaceAhorro={reemplazarAhorroAdmin} onOpenEmergencia={() => { setIsMetasOpen(false); setIsEmergenciaOpen(true); }} gastosFijosBase={cajones['Gastos Fijos']?.monto || 0} gastosVariablesBase={cajones['Gastos Variables']?.monto || 0} ingresosMensuales={ingresosMensuales} edadUsuario={18} cicloMaestro={cicloMaestro} />
@@ -820,6 +887,7 @@ const headerStyle = { display: 'flex', justifyContent: 'space-between', alignIte
 const mainCardStyle = { background: 'linear-gradient(135deg, #2b323c 0%, #1e242b 100%)', color: 'white', padding: '45px', borderRadius: '35px', boxShadow: '0 20px 45px rgba(0,0,0,0.15)', marginBottom: '40px' };
 const btnMainAdd = { flex: 1, backgroundColor: '#10ac84', color: 'white', border: 'none', borderRadius: '18px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' };
 const btnMainRemove = { flex: 1, backgroundColor: '#ee5253', color: 'white', border: 'none', borderRadius: '18px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' };
+const alertSuccessStyle = { display: 'flex', alignItems: 'center', backgroundColor: '#fff3cd', padding: '20px 25px', borderRadius: '20px', marginBottom: '40px', borderLeft: '8px solid #ffc107', transition: 'opacity 0.5s ease-out' };
 const statsGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '45px' };
 const statCardStyle = { backgroundColor: '#fff', padding: '30px', borderRadius: '25px', border: '1px solid #e1e5ee' };
 const editPriorityBtn = { padding: '10px 18px', borderRadius: '15px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '8px' };
