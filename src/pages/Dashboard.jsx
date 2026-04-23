@@ -22,6 +22,7 @@ const Dashboard = () => {
     
     const [isLoading, setIsLoading] = useState(true);
     const [isFirstTime, setIsFirstTime] = useState(false); 
+    const [showTutorial, setShowTutorial] = useState(false); // 💡 NUEVO: Control del tutorial
 
     const [userName, setUserName] = useState('');
     const [email, setEmail] = useState('');
@@ -114,7 +115,6 @@ const Dashboard = () => {
                 const data = await response.json();
 
                 if (response.ok && data.isConfigured) {
-                    // ¡Descargamos todo de la nube de TiDB!
                     const cloudData = data.financialData;
                     
                     setUserName(cloudData.nombre || '');
@@ -137,13 +137,12 @@ const Dashboard = () => {
                     
                     setIsFirstTime(false);
                 } else {
-                    // Si no está configurado en la nube, lanzamos la bienvenida
                     setIsFirstTime(true);
                 }
             } catch (error) {
                 console.error("Error al descargar datos de la nube:", error);
                 alert("Error de conexión con la nube. Mostrando datos locales de respaldo.");
-                setIsFirstTime(true); // Fallback temporal
+                setIsFirstTime(true); 
             } finally {
                 setIsLoading(false);
             }
@@ -181,7 +180,6 @@ const Dashboard = () => {
                 body: JSON.stringify({ email: email, financialData: financialDataObj })
             });
 
-            // Actualizamos la pantalla
             setUserName(datos.nombre); 
             setFechaNacimiento(datos.fechaNacimiento); 
             setPinSeguridad(datos.pin); 
@@ -192,6 +190,7 @@ const Dashboard = () => {
             setCajones(datos.cajones); 
             setOrdenCajones(datos.ordenCajones);
             setIsFirstTime(false);
+            setShowTutorial(true); // 💡 ACTIVAR TUTORIAL AQUÍ
         } catch (error) {
             console.error("Error al guardar en la nube:", error);
             alert("No se pudo guardar en la nube. Intenta de nuevo.");
@@ -201,7 +200,6 @@ const Dashboard = () => {
     };
 
     // 🟢 3. AUTOGUARDADO EN LA NUBE CONTINUO
-    // (Cada que mueves dinero, se dispara esto hacia TiDB)
     useEffect(() => {
         if (!email || isFirstTime || isLoading) return;
 
@@ -229,7 +227,6 @@ const Dashboard = () => {
             }
         };
 
-        // Ponemos un pequeño retraso (debounce) para no saturar el servidor si haces muchos clics rápidos
         const delaySync = setTimeout(() => {
             syncToCloud();
         }, 1000);
@@ -899,14 +896,19 @@ const Dashboard = () => {
                     <div style={{ height: '100px' }}></div>
                 </div>
                 
-                <GuiaTutorial 
-                    seccion="dashboard_principal_v1"
-                    pasos={[
-                        { titulo: "Tu Centro de Mando 📊", contenido: "Aquí verás todo tu dinero líquido. Ingresa tu saldo y la Cascada lo repartirá automáticamente llenando tus cajones según su prioridad." },
-                        { titulo: "El Poder del Sobrante 💸", contenido: "Si te sobra dinero al final del ciclo (Cajón Libre), significa que tu estrategia funcionó y gastaste menos de lo que ganaste." },
-                        { titulo: "Corte de Ciclo 🔄", contenido: "Cuando llegue tu Día de Pago, la app te pedirá hacer cuentas de los cajones llenos para saber qué gastaste y qué te sobró." }
-                    ]}
-                />
+                {/* 💡 RENDERIZADO CONDICIONAL DEL TUTORIAL */}
+                {showTutorial && (
+                    <GuiaTutorial 
+                        seccion="dashboard_principal_v1"
+                        pasos={[
+                            { titulo: "Tu Centro de Mando 📊", contenido: "Aquí verás todo tu dinero líquido. Ingresa tu saldo y la Cascada lo repartirá automáticamente llenando tus cajones según su prioridad." },
+                            { titulo: "El Poder del Sobrante 💸", contenido: "Si te sobra dinero al final del ciclo (Cajón Libre), significa que tu estrategia funcionó y gastaste menos de lo que ganaste." },
+                            { titulo: "Corte de Ciclo 🔄", contenido: "Cuando llegue tu Día de Pago, la app te pedirá hacer cuentas de los cajones llenos para saber qué gastaste y qué te sobró." }
+                        ]}
+                        // Si tu componente tiene prop para cerrarlo, úsala aquí
+                        onClose={() => setShowTutorial(false)}
+                    />
+                )}
             </main>
         </div>
     );
