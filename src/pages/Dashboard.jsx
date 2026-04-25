@@ -22,7 +22,7 @@ const Dashboard = () => {
     
     const [isLoading, setIsLoading] = useState(true);
     const [isFirstTime, setIsFirstTime] = useState(false); 
-    const [showTutorial, setShowTutorial] = useState(false); // 💡 NUEVO: Control del tutorial
+    const [showTutorial, setShowTutorial] = useState(false); 
 
     const [userName, setUserName] = useState('');
     const [email, setEmail] = useState('');
@@ -55,6 +55,11 @@ const Dashboard = () => {
     const [isEmergenciaOpen, setIsEmergenciaOpen] = useState(false); 
     const [isEditingCajones, setIsEditingCajones] = useState(false);
     
+    const [expandedCajones, setExpandedCajones] = useState({});
+    const toggleCajon = (nombre) => {
+        setExpandedCajones(prev => ({ ...prev, [nombre]: !prev[nombre] }));
+    };
+
     const [isBovedaFullScreenOpen, setIsBovedaFullScreenOpen] = useState(false); 
     const [isCajaFuerteFullScreenOpen, setIsCajaFuerteFullScreenOpen] = useState(false); 
     const [isRetosFullScreenOpen, setIsRetosFullScreenOpen] = useState(false);
@@ -64,7 +69,11 @@ const Dashboard = () => {
     const [ingresoPendienteCorte, setIngresoPendienteCorte] = useState(0);
 
     const [isEditMontoOpen, setIsEditMontoOpen] = useState(false);
-    const [editMontoForm, setEditMontoForm] = useState({ nombre: '', monto: '', frecuencia: 'Mensual' });
+    const [editMontoForm, setEditMontoForm] = useState({ nombre: '', nombreOriginal: '', monto: '', frecuencia: 'Mensual' });
+    
+    const [isSubCalcOpen, setIsSubCalcOpen] = useState(false);
+    const [subGastos, setSubGastos] = useState([{ nombre: '', monto: '', frecuencia: 'Mensual' }]);
+
     const [isQuickEventOpen, setIsQuickEventOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -73,13 +82,15 @@ const Dashboard = () => {
     const [isImprevistoModalOpen, setIsImprevistoModalOpen] = useState(false);
     const [imprevistoForm, setImprevistoForm] = useState({ nombre: '', monto: '' });
     const [nuevoCajon, setNuevoCajon] = useState({ nombre: '', monto: '', frecuencia: 'Mensual' });
+    
     const [isReconfigureOpen, setIsReconfigureOpen] = useState(false);
-    const [configForm, setConfigForm] = useState({ saldoActual: 0, cicloMaestro: 'Mensual', ingresos: [] });
+    const [configForm, setConfigForm] = useState({ saldoActual: 0, cicloMaestro: 'Mensual', diaInicioCiclo: '1', ingresos: [] });
+
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [profileForm, setProfileForm] = useState({ nombre: '', correo: '', fechaNacimiento: '', password: '', confirmPassword: '', pin: '', confirmPin: '' });
 
     const blockInvalidChars = (e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault();
-    const isAdmin = (nombre) => ['Gastos Fijos', 'Gastos Variables', 'Ahorro', 'Deuda'].includes(nombre);
+    const isAdmin = (nombre) => ['Gastos Fijos', 'Gastos Variables', 'Deuda'].includes(nombre) || nombre.startsWith('Ahorro');
 
     const calcularAcople = (monto, frec, ciclo) => {
         if (frec === 'Imprevisto_Pagado') return parseFloat(monto) || 0;
@@ -97,7 +108,7 @@ const Dashboard = () => {
         return "OK";
     };
 
-    // 🟢 1. OBTENER DATOS DE LA NUBE AL ENTRAR (GET)
+    // 🟢 1. OBTENER DATOS DE LA NUBE
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userEmail = localStorage.getItem('userEmail');
@@ -116,7 +127,6 @@ const Dashboard = () => {
 
                 if (response.ok && data.isConfigured) {
                     const cloudData = data.financialData;
-                    
                     setUserName(cloudData.nombre || '');
                     setFechaNacimiento(cloudData.fechaNacimiento || '');
                     setPinSeguridad(cloudData.pinSeguridad || '');
@@ -151,46 +161,28 @@ const Dashboard = () => {
         fetchCloudData();
     }, [navigate]);
 
-    // 🟢 2. GUARDAR DATOS EN LA NUBE AL FINALIZAR BIENVENIDA (POST)
+    // 🟢 2. GUARDAR DATOS BIENVENIDA
     const handleFinalizarBienvenida = async (datos) => {
         setIsLoading(true);
         const financialDataObj = {
-            nombre: datos.nombre,
-            fechaNacimiento: datos.fechaNacimiento,
-            pinSeguridad: datos.pin,
+            nombre: datos.nombre, fechaNacimiento: datos.fechaNacimiento, pinSeguridad: datos.pin,
             configGlobal: {
-                saldoActual: datos.saldo,
-                boveda: 0,
-                cajaFuerte: 0,
-                cicloMaestro: datos.ciclo,
-                diaInicioCiclo: datos.diaInicio,
-                ultimaFechaReinicio: '',
-                ingresos: datos.ingresos,
-                configuraciones: datos.cajones,
-                ordenCajones: datos.ordenCajones
+                saldoActual: datos.saldo, boveda: 0, cajaFuerte: 0, cicloMaestro: datos.ciclo,
+                diaInicioCiclo: datos.diaInicio, ultimaFechaReinicio: '', ingresos: datos.ingresos,
+                configuraciones: datos.cajones, ordenCajones: datos.ordenCajones
             },
-            historial: [],
-            agenda: []
+            historial: [], agenda: []
         };
 
         try {
             await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/save-data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email, financialData: financialDataObj })
             });
-
-            setUserName(datos.nombre); 
-            setFechaNacimiento(datos.fechaNacimiento); 
-            setPinSeguridad(datos.pin); 
-            setSaldoActual(datos.saldo); 
-            setCicloMaestro(datos.ciclo); 
-            setDiaInicioCiclo(datos.diaInicio);
-            setIngresos(datos.ingresos); 
-            setCajones(datos.cajones); 
-            setOrdenCajones(datos.ordenCajones);
-            setIsFirstTime(false);
-            setShowTutorial(true); // 💡 ACTIVAR TUTORIAL AQUÍ
+            setUserName(datos.nombre); setFechaNacimiento(datos.fechaNacimiento); setPinSeguridad(datos.pin); 
+            setSaldoActual(datos.saldo); setCicloMaestro(datos.ciclo); setDiaInicioCiclo(datos.diaInicio);
+            setIngresos(datos.ingresos); setCajones(datos.cajones); setOrdenCajones(datos.ordenCajones);
+            setIsFirstTime(false); setShowTutorial(true); 
         } catch (error) {
             console.error("Error al guardar en la nube:", error);
             alert("No se pudo guardar en la nube. Intenta de nuevo.");
@@ -205,39 +197,28 @@ const Dashboard = () => {
 
         const syncToCloud = async () => {
             const financialDataObj = {
-                nombre: userName,
-                fechaNacimiento: fechaNacimiento,
-                pinSeguridad: pinSeguridad,
+                nombre: userName, fechaNacimiento: fechaNacimiento, pinSeguridad: pinSeguridad,
                 configGlobal: {
                     saldoActual, boveda, cajaFuerte, cicloMaestro, diaInicioCiclo, 
                     ultimaFechaReinicio, ingresos, configuraciones: cajones, ordenCajones
                 },
-                historial: historial,
-                agenda: eventosCalendario
+                historial: historial, agenda: eventosCalendario
             };
 
             try {
                 await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/save-data', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, financialData: financialDataObj })
                 });
-            } catch (error) {
-                console.error("Error en autoguardado en la nube:", error);
-            }
+            } catch (error) { console.error("Error en autoguardado en la nube:", error); }
         };
 
-        const delaySync = setTimeout(() => {
-            syncToCloud();
-        }, 1000);
-
+        const delaySync = setTimeout(() => { syncToCloud(); }, 1000);
         return () => clearTimeout(delaySync);
-
     }, [saldoActual, cajones, ordenCajones, boveda, cajaFuerte, historial, eventosCalendario, userName, fechaNacimiento, pinSeguridad, cicloMaestro, diaInicioCiclo, ultimaFechaReinicio, ingresos, email, isFirstTime, isLoading]);
 
-
     // =====================================
-    // EL RESTO DEL CÓDIGO FINANCIERO
+    // LÓGICA FINANCIERA Y CICLOS
     // =====================================
 
     useEffect(() => {
@@ -247,43 +228,24 @@ const Dashboard = () => {
         if (ultimaFechaReinicio === fechaStringHoy) return;
 
         let tocaCobro = false;
-        if (cicloMaestro === 'Semanal') { if (hoyDate.getDay().toString() === diaInicioCiclo) tocaCobro = true; } 
+        if (cicloMaestro === 'Semanal') { if (hoyDate.getDay().toString() === diaInicioCiclo.toString()) tocaCobro = true; } 
         else if (cicloMaestro === 'Quincenal') {
             const diaMes = hoyDate.getDate(); const diaInicioInt = parseInt(diaInicioCiclo);
             if (diaMes === diaInicioInt || diaMes === (diaInicioInt + 15 > 30 ? 15 : diaInicioInt + 15)) tocaCobro = true;
         } 
-        else if (cicloMaestro === 'Mensual') { if (hoyDate.getDate().toString() === diaInicioCiclo) tocaCobro = true; }
+        else if (cicloMaestro === 'Mensual') { if (hoyDate.getDate().toString() === diaInicioCiclo.toString()) tocaCobro = true; }
 
         if (tocaCobro) {
             const totalIngresoAAgregar = ingresos.reduce((s, i) => s + calcularAcople(i.monto, i.frecuencia, cicloMaestro), 0);
-            let nC = { ...cajones }; 
-            let nO = [...ordenCajones]; 
-            let saldoTemp = saldoActual;
+            let nC = { ...cajones }; let nO = [...ordenCajones]; let saldoTemp = saldoActual;
 
             Object.keys(nC).forEach(key => { 
                 if (nC[key].esRetoPagado) nC[key].esRetoPagado = false; 
                 if (nC[key].aseguradoEnCiclo) nC[key].aseguradoEnCiclo = false; 
-                
-                if (key.startsWith('Reto:') || key.includes('Capricho:') || key.startsWith('Meta:')) {
-                    const acumulado = nC[key].acumulado || 0;
-                    const cuota = nC[key].monto;
-                    let isCompleted = false;
-
-                    if (key.startsWith('Meta:')) {
-                        const match = key.match(/\(Total: (\d+(\.\d+)?)\)/);
-                        const total = match ? parseFloat(match[1]) : 0;
-                        isCompleted = total > 0 && acumulado >= total;
-                    } else {
-                        const match = key.match(/\((\d+)\s*ciclos\)/);
-                        const ciclosTotal = match ? parseInt(match[1]) : 0;
-                        isCompleted = ciclosTotal > 0 ? (Math.floor(acumulado / cuota) >= ciclosTotal) : (acumulado > 0);
-                    }
-                }
             });
 
             nO = nO.filter(n => { if (nC[n] && nC[n].frecuencia === 'Imprevisto_Pagado') { delete nC[n]; return false; } return true; });
-            setCajones(nC); 
-            setOrdenCajones(nO);
+            setCajones(nC); setOrdenCajones(nO);
 
             const pendientes = [];
             nO.forEach(n => {
@@ -325,11 +287,7 @@ const Dashboard = () => {
         setIsCorteModalOpen(false); alert(`✅ ¡Tus cascadas se han reiniciado con éxito para este nuevo ciclo!`);
     };
 
-    const handleLogout = () => { 
-        localStorage.removeItem('token'); 
-        localStorage.removeItem('userEmail'); 
-        navigate('/'); 
-    };
+    const handleLogout = () => { localStorage.removeItem('token'); localStorage.removeItem('userEmail'); navigate('/'); };
 
     const handleEliminarCuenta = async () => {
         if (window.confirm("🚨 ADVERTENCIA: Estás a punto de eliminar tu cuenta de forma PERMANENTE. Perderás todas tus metas, cajones y dinero registrado.\n\n¿Deseas continuar?")) {
@@ -337,20 +295,14 @@ const Dashboard = () => {
             if (conf === "ELIMINAR") {
                 try {
                     await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/delete', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
+                        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email: email })
                     });
-                } catch (error) {
-                    console.log("No se pudo contactar al backend para eliminar");
-                }
-                localStorage.removeItem('token');
-                localStorage.removeItem('userEmail');
+                } catch (error) { console.log("No se pudo contactar al backend para eliminar"); }
+                localStorage.removeItem('token'); localStorage.removeItem('userEmail');
                 alert("🗑️ Tu cuenta ha sido eliminada correctamente.");
                 navigate('/');
-            } else {
-                alert("❌ Cancelado. La palabra no coincide.");
-            }
+            } else { alert("❌ Cancelado. La palabra no coincide."); }
         }
     };
 
@@ -360,9 +312,36 @@ const Dashboard = () => {
     
     const limpiarHistorial = () => { if (window.confirm("⚠️ ¿Borrar historial?")) setHistorial([]); };
 
-    const borrarCajon = (nombre, llenadoActual = 0) => {
-        if (isAdmin(nombre)) return alert("❌ Los administradores base y deudas NO se eliminan.");
-        if (nombre === 'Fondo de Emergencia') { if (window.prompt(`🔒 Ingresa NIP:`) !== pinSeguridad) return alert('❌ NIP Incorrecto.'); }
+    const borrarCajon = (nombre, llenadoActual = 0, autoRefund = false) => {
+        if (isAdmin(nombre) && !nombre.startsWith('Ahorro')) return alert("❌ Los administradores base (Gastos Fijos/Variables/Deuda) no se eliminan.");
+        
+        if (nombre === 'Fondo de Emergencia') { 
+            if (!autoRefund) {
+                if (window.prompt(`🔒 Ingresa NIP:`) !== pinSeguridad) return alert('❌ NIP Incorrecto.'); 
+                if (!window.confirm(`¿Seguro que quieres eliminar tu Fondo de Emergencia?`)) return;
+            }
+            
+            if (boveda > 0) {
+                let accion = '2'; 
+                if (!autoRefund) {
+                    accion = window.prompt(`Tienes $${boveda.toLocaleString()} acumulados en tu Bóveda.\n\nEscribe '1' si ya te GASTASTE ese dinero (Emergencia real).\nEscribe '2' para regresar el dinero a la cascada.`);
+                }
+                
+                if (accion === '1') {
+                    registrarEnHistorial('Fondo de Emergencia Gastado', boveda, 'gasto', saldoActual, saldoActual);
+                    setBoveda(0);
+                } else if (accion === '2') {
+                    registrarEnHistorial('Reembolso Fondo Emergencia', boveda, 'pago', saldoActual, saldoActual + boveda);
+                    setSaldoActual(p => p + boveda);
+                    setBoveda(0);
+                } else return alert('❌ Cancelado.');
+            }
+            const nC = { ...cajones }; delete nC[nombre]; setCajones(nC);
+            setOrdenCajones(prev => prev.filter(n => n !== nombre));
+            if(autoRefund) alert("✅ Fondo eliminado. El dinero ha regresado a tu Cascada.");
+            return;
+        }
+
         if (window.confirm(`¿Seguro que quieres eliminar "${nombre}"?`)) {
             const acumulado = cajones[nombre]?.acumulado || 0;
             const totalRetenido = llenadoActual + acumulado;
@@ -378,9 +357,17 @@ const Dashboard = () => {
         }
     };
 
+    const reemplazarAhorroAdmin = (monto, frecuencia) => {
+        const p = window.prompt(`🔒 Ingresa NIP para reemplazar tu Ahorro Base por $${monto.toLocaleString()}:`);
+        if (p !== pinSeguridad) return alert('❌ NIP Incorrecto.');
+        setCajones(prev => ({ ...prev, 'Ahorro': { monto: parseFloat(monto), frecuencia } })); 
+        alert('✅ Cajón de Ahorro Base actualizado.'); 
+        setIsMetasOpen(false);
+    };
+
     const abonarReto = (nombre, llenado) => {
         const title = nombre.startsWith('Meta:') ? 'Ahorro Inteligente' : 'Micro-Reto';
-        if (window.confirm(`¿Abonar $${llenado.toLocaleString()} a tu ${title}?\n\nEl dinero se guardará en tu acumulado y desaparecerá de la cascada por el resto del ciclo.`)) {
+        if (window.confirm(`¿Abonar $${llenado.toLocaleString()} a tu ${title}?\n\nEl dinero se guardará en tu acumulado y este cajón quedará "Asegurado" por el resto del ciclo.`)) {
             registrarEnHistorial(`Abono a ${title}: ${nombre.replace(/ \(\d+ ciclos\)/, '').replace(/ \(Total: [\d.]+\)/, '').replace('Meta: ', '').replace('Reto: ', '')}`, llenado, 'gasto', saldoActual, saldoActual - llenado);
             setSaldoActual(p => p - llenado);
             setCajones(prev => ({ ...prev, [nombre]: { ...prev[nombre], acumulado: (prev[nombre].acumulado || 0) + llenado, esRetoPagado: true } }));
@@ -457,6 +444,7 @@ const Dashboard = () => {
     const cerrarModalEvento = () => { setIsQuickEventOpen(false); setIsEditing(false); setEditingId(null); setEventForm({ nombre: '', monto: '', tipo: 'gasto', frecuencia: 'Único' }); };
     
     const guardarEvento = () => { if (!eventForm.nombre || !eventForm.monto) return alert("Llena los campos."); setEventosCalendario(isEditing ? eventosCalendario.map(e => e.id === editingId ? { ...e, ...eventForm, monto: parseFloat(eventForm.monto) } : e) : [...eventosCalendario, { id: Date.now(), dia: selectedDay, ...eventForm, monto: parseFloat(eventForm.monto), mesCreacion: mesActual, anioCreacion: anioActual }]); cerrarModalEvento(); };
+    
     const eliminarEventoTotal = () => { 
         const ev = eventosCalendario.find(e => e.id === editingId); if (!ev) return;
         const accion = window.prompt(`¿Qué deseas hacer con la alerta "${ev.nombre}"?\n\nEscribe '1' si ya se PAGÓ/COBRÓ (Afectará tu saldo y guardará en historial).\nEscribe '2' para solo borrar la alerta sin tocar tu dinero.`);
@@ -470,12 +458,6 @@ const Dashboard = () => {
     
     const handleSaveEventFromCalendar = (nuevoEvento) => { setEventosCalendario([...eventosCalendario, { id: Date.now(), ...nuevoEvento, mesCreacion: mesActual, anioCreacion: anioActual }]); };
     const handleDeleteEventFromCalendar = (id) => { if (window.confirm("¿Eliminar alerta?")) setEventosCalendario(eventosCalendario.filter(e => e.id !== id)); };
-
-    const reemplazarAhorroAdmin = (monto, frecuencia) => {
-        const p = window.prompt(`🔒 Ingresa NIP para reemplazar tu Ahorro Base por $${monto.toLocaleString()}:`);
-        if (p !== pinSeguridad) return alert('❌ NIP Incorrecto.');
-        setCajones(prev => ({ ...prev, 'Ahorro': { monto: parseFloat(monto), frecuencia } })); alert('✅ Cajón de Ahorro Base actualizado.'); setIsMetasOpen(false);
-    };
 
     const handleGuardarNuevoCajon = () => {
         if (!nuevoCajon.nombre || !nuevoCajon.monto) return alert('Llena todos los campos.');
@@ -493,9 +475,13 @@ const Dashboard = () => {
         setIsImprevistoModalOpen(false); setImprevistoForm({ nombre: '', monto: '' });
     };
 
-    const agregarCajonDesdeMetas = (nombre, monto, frecuencia) => {
-        setCajones(prev => ({ ...prev, [nombre]: { monto, frecuencia, acumulado: 0, esRetoPagado: false } }));
-        setOrdenCajones(prev => { if (!prev.includes(nombre)) return [...prev, nombre]; return prev; }); setIsMetasOpen(false); setIsEmergenciaOpen(false);
+    const agregarCajonDesdeMetas = (nombre, monto, frecuencia, metaTotal = 0) => {
+        if (cajones[nombre]) {
+            return alert(`❌ Ya tienes activo el cajón "${nombre}". Si quieres reconfigurarlo, elimínalo primero de tu Cascada.`);
+        }
+        setCajones(prev => ({ ...prev, [nombre]: { monto, frecuencia, acumulado: 0, esRetoPagado: false, metaTotal } }));
+        setOrdenCajones(prev => { if (!prev.includes(nombre)) return [...prev, nombre]; return prev; }); 
+        setIsMetasOpen(false); setIsEmergenciaOpen(false);
     };
 
     const moverCajonArribaAbajo = (index, direccion) => {
@@ -507,20 +493,61 @@ const Dashboard = () => {
     };
 
     const abrirEdicionMonto = (nombreCajon) => {
-        if (isAdmin(nombreCajon) || nombreCajon === 'Fondo de Emergencia') { if (window.prompt(`🔒 NIP requerido para editar admin:`) !== pinSeguridad) return alert('❌ NIP Incorrecto.'); }
-        setEditMontoForm({ nombre: nombreCajon, monto: cajones[nombreCajon].monto, frecuencia: cajones[nombreCajon].frecuencia }); setIsEditMontoOpen(true);
+        if (isAdmin(nombreCajon) && !nombreCajon.startsWith('Ahorro')) { if (window.prompt(`🔒 NIP requerido para editar admin:`) !== pinSeguridad) return alert('❌ NIP Incorrecto.'); }
+        setEditMontoForm({ nombre: nombreCajon, nombreOriginal: nombreCajon, monto: cajones[nombreCajon].monto, frecuencia: cajones[nombreCajon].frecuencia }); 
+        setSubGastos([{ nombre: '', monto: '', frecuencia: 'Mensual' }]);
+        setIsEditMontoOpen(true);
+    };
+
+    const handleSubGastoChange = (index, field, value) => {
+        const nuevos = [...subGastos];
+        nuevos[index][field] = value;
+        setSubGastos(nuevos);
+    };
+    const addSubGasto = () => setSubGastos([...subGastos, { nombre: '', monto: '', frecuencia: 'Mensual' }]);
+    const removeSubGasto = (index) => setSubGastos(subGastos.filter((_, i) => i !== index));
+
+    const aplicarSubGastos = () => {
+        let total = 0;
+        subGastos.forEach(sub => {
+            if (sub.monto) total += calcularAcople(sub.monto, sub.frecuencia, editMontoForm.frecuencia);
+        });
+        setEditMontoForm({ ...editMontoForm, monto: total.toFixed(2) });
     };
 
     const guardarEdicionMonto = () => {
         if (!editMontoForm.monto || parseFloat(editMontoForm.monto) <= 0) return alert("Monto inválido.");
-        setCajones(prev => ({ ...prev, [editMontoForm.nombre]: { ...prev[editMontoForm.nombre], monto: parseFloat(editMontoForm.monto), frecuencia: editMontoForm.frecuencia } })); setIsEditMontoOpen(false);
+        
+        let nuevoNombre = editMontoForm.nombre.trim();
+        const nombreViejo = editMontoForm.nombreOriginal;
+
+        if (nombreViejo.startsWith('Ahorro')) {
+            if (!nuevoNombre.toLowerCase().includes('ahorro')) nuevoNombre = 'Ahorro ' + nuevoNombre;
+        }
+
+        if (nuevoNombre !== nombreViejo) {
+            if (cajones[nuevoNombre]) return alert('❌ Ya existe un cajón con ese nombre.');
+            const nC = { ...cajones };
+            nC[nuevoNombre] = { ...nC[nombreViejo], monto: parseFloat(editMontoForm.monto), frecuencia: editMontoForm.frecuencia };
+            delete nC[nombreViejo];
+            setCajones(nC);
+            const nO = [...ordenCajones];
+            const idx = nO.indexOf(nombreViejo);
+            if (idx !== -1) nO[idx] = nuevoNombre;
+            setOrdenCajones(nO);
+        } else {
+            setCajones(prev => ({ ...prev, [nuevoNombre]: { ...prev[nuevoNombre], monto: parseFloat(editMontoForm.monto), frecuencia: editMontoForm.frecuencia } }));
+        }
+        setIsEditMontoOpen(false);
     };
 
-    const abrirReconfiguracion = () => { setConfigForm({ saldoActual: saldoActual, cicloMaestro: cicloMaestro, ingresos: JSON.parse(JSON.stringify(ingresos)) }); setIsProfileOpen(false); setIsReconfigureOpen(true); };
+    const abrirReconfiguracion = () => { setConfigForm({ saldoActual: saldoActual, cicloMaestro: cicloMaestro, diaInicioCiclo: diaInicioCiclo, ingresos: JSON.parse(JSON.stringify(ingresos)) }); setIsProfileOpen(false); setIsReconfigureOpen(true); };
+    
     const handleGuardarReconfiguracion = () => {
         if (configForm.ingresos.length === 0 || configForm.ingresos.some(i => !i.monto)) return alert("Ingresos inválidos.");
-        setSaldoActual(parseFloat(configForm.saldoActual)); setCicloMaestro(configForm.cicloMaestro); setIngresos(configForm.ingresos); setIsReconfigureOpen(false);
+        setSaldoActual(parseFloat(configForm.saldoActual)); setCicloMaestro(configForm.cicloMaestro); setDiaInicioCiclo(configForm.diaInicioCiclo); setIngresos(configForm.ingresos); setIsReconfigureOpen(false);
     };
+    
     const handleAddIngreso = () => setConfigForm({ ...configForm, ingresos: [...configForm.ingresos, { monto: '', frecuencia: 'Mensual' }] });
     const handleRemoveIngreso = (index) => setConfigForm({ ...configForm, ingresos: configForm.ingresos.filter((_, i) => i !== index) });
     const handleIngresoChange = (index, field, value) => { const nI = [...configForm.ingresos]; nI[index][field] = value; setConfigForm({ ...configForm, ingresos: nI }); };
@@ -560,8 +587,39 @@ const Dashboard = () => {
     ordenCajones.forEach(n => {
         if (!cajones[n] || n === 'Libre') return; 
         const meta = calcularAcople(cajones[n].monto, cajones[n].frecuencia, cicloMaestro);
-        if (cajones[n].frecuencia === 'Imprevisto_Pagado') { estadoCajones.push({ nombre: n, meta: meta, llenado: meta, porcentaje: 100, esSobrante: false }); } 
-        else { let llenado = Math.min(Math.max(0, saldoRestante), meta); saldoRestante -= llenado; estadoCajones.push({ nombre: n, meta, llenado, porcentaje: meta > 0 ? Math.min((llenado / meta) * 100, 100) : 100, esSobrante: false }); }
+        if (cajones[n].frecuencia === 'Imprevisto_Pagado') { 
+            estadoCajones.push({ nombre: n, meta: meta, llenado: meta, porcentaje: 100, esSobrante: false, completado: false }); 
+        } 
+        else { 
+            let llenado = 0;
+            let porcentaje = 100;
+            
+            let estaCompletadoTotalmente = false;
+            if (n.startsWith('Meta:')) {
+                const match = n.match(/\(Total: (\d+(\.\d+)?)\)/);
+                const total = match ? parseFloat(match[1]) : 0;
+                if (total > 0 && (cajones[n].acumulado || 0) >= total) estaCompletadoTotalmente = true;
+            } else if (n.startsWith('Reto:')) {
+                const match = n.match(/\((\d+)\s*ciclos\)/);
+                if (match) {
+                    const ciclosTotal = parseInt(match[1]);
+                    if (Math.floor((cajones[n].acumulado || 0) / cajones[n].monto) >= ciclosTotal) estaCompletadoTotalmente = true;
+                }
+            } else if (n === 'Fondo de Emergencia') {
+                if (cajones[n].metaTotal > 0 && boveda >= cajones[n].metaTotal) estaCompletadoTotalmente = true;
+            }
+
+            if (estaCompletadoTotalmente) {
+                estadoCajones.push({ nombre: n, meta, llenado: 0, porcentaje: 100, esSobrante: false, completado: true });
+            } else {
+                if (!cajones[n].esRetoPagado && !cajones[n].aseguradoEnCiclo) {
+                    llenado = Math.min(Math.max(0, saldoRestante), meta); 
+                    saldoRestante -= llenado; 
+                    porcentaje = meta > 0 ? Math.min((llenado / meta) * 100, 100) : 100;
+                }
+                estadoCajones.push({ nombre: n, meta, llenado, porcentaje: porcentaje, esSobrante: false, completado: false }); 
+            }
+        }
     });
 
     const metaLibre = cajones['Libre'] ? calcularAcople(cajones['Libre'].monto, cajones['Libre'].frecuencia, cicloMaestro) : 0;
@@ -570,7 +628,13 @@ const Dashboard = () => {
     const disponibleLibre = estadoCajones.find(c => c.nombre === 'Libre')?.llenado || 0;
     const sobranteCiclo = totalIngresosCiclo - totalAsignadoBase;
 
-    const totalAcumuladoRetos = Object.keys(cajones).reduce((acc, key) => acc + ((key.startsWith('Reto:') || key.includes('Capricho:') || key.startsWith('Meta:')) ? (cajones[key].acumulado || 0) : 0), 0);
+    // 💡 FIX LÓGICO: Solo contar "Retos" (no Metas) en el total de la alcancía rosa
+    const totalAcumuladoRetos = Object.keys(cajones).reduce((acc, key) => {
+        if (key.startsWith('Reto:') || key.includes('Capricho:')) {
+            return acc + (cajones[key].acumulado || 0);
+        }
+        return acc;
+    }, 0);
 
     if (isLoading) return <div style={{height: '100vh', backgroundColor: '#f4f7f6', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><h2 style={{color: '#007bff'}}>Sincronizando con TiDB... ☁️</h2></div>;
     if (isFirstTime) return <div className="app-wrapper" style={appWrapperStyle}><BienvenidaFullScreen onFinish={handleFinalizarBienvenida} /></div>;
@@ -639,21 +703,64 @@ const Dashboard = () => {
             )}
 
             {isEditMontoOpen && (
-                <div className="modal-center" style={{ ...modalCenterStyle, width: '380px' }}>
+                <div className="modal-center" style={{ ...modalCenterStyle, width: '420px', maxHeight: '90vh', overflowY: 'auto' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ margin: 0, color: '#2f3542', fontSize: '18px' }}>Editar <span style={{color: '#007bff'}}>{editMontoForm.nombre}</span></h3>
+                        <h3 style={{ margin: 0, color: '#2f3542', fontSize: '18px' }}>Editar <span style={{color: '#007bff'}}>{editMontoForm.nombreOriginal}</span></h3>
                         <FaTimes onClick={() => setIsEditMontoOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: '#a4b0be' }} />
                     </div>
-                    <label style={labelModalStyle}>Monto de la Meta</label>
+                    
+                    {editMontoForm.nombreOriginal.startsWith('Ahorro') && (
+                        <>
+                            <label style={labelModalStyle}>Nombre del Cajón</label>
+                            <input type="text" value={editMontoForm.nombre} onChange={(e) => setEditMontoForm({...editMontoForm, nombre: e.target.value})} style={inputModalStyle} />
+                        </>
+                    )}
+
+                    <label style={labelModalStyle}>Frecuencia (Plazo de la meta)</label>
+                    <select value={editMontoForm.frecuencia} onChange={(e) => setEditMontoForm({...editMontoForm, frecuencia: e.target.value})} disabled={editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')} style={{...inputModalStyle, backgroundColor: (editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')) ? '#e9ecef' : '#f8f9fa', cursor: (editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')) ? 'not-allowed' : 'pointer'}}>
+                        <option>Único</option><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Anual</option>
+                    </select>
+
+                    <label style={labelModalStyle}>Monto Total de la Meta</label>
                     <div style={{ position: 'relative', marginBottom: '15px' }}>
                         <span style={{ position: 'absolute', left: '15px', top: '15px', fontWeight: 'bold', color: '#28a745' }}>$</span>
                         <input type="number" min="0" onKeyDown={blockInvalidChars} value={editMontoForm.monto} onChange={(e) => setEditMontoForm({...editMontoForm, monto: e.target.value})} style={{ ...inputModalStyle, paddingLeft: '35px', margin: 0, fontSize: '18px', fontWeight: 'bold' }} />
                     </div>
-                    <label style={labelModalStyle}>Frecuencia</label>
-                    <select value={editMontoForm.frecuencia} onChange={(e) => setEditMontoForm({...editMontoForm, frecuencia: e.target.value})} style={inputModalStyle}>
-                        <option>Único</option><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Anual</option>
-                    </select>
-                    <button onClick={guardarEdicionMonto} style={{ ...btnMainAdd, width: '100%', marginTop: '10px' }}><FaSave /> Actualizar Cajón</button>
+
+                    {(editMontoForm.nombreOriginal === 'Gastos Fijos' || editMontoForm.nombreOriginal === 'Gastos Variables') && (
+                        <div style={{ borderTop: '1px dashed #e1e5ee', marginTop: '10px', paddingTop: '20px' }}>
+                            <h4 style={{ margin: '0 0 15px 0', color: '#007bff', fontSize: '14px' }}>Conversión a {editMontoForm.frecuencia}</h4>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {subGastos.map((sub, i) => (
+                                    <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <input type="text" placeholder="Ej. Luz" value={sub.nombre} onChange={(e) => handleSubGastoChange(i, 'nombre', e.target.value)} style={{...inputModalStyle, flex: 2, margin: 0, padding: '10px', fontSize: '14px', background: '#fff', border: '1px solid #dfe6e9'}} />
+                                        <div style={{position: 'relative', flex: 1.5}}>
+                                            <span style={{position: 'absolute', left: '10px', top: '10px', fontSize: '14px', color: '#a4b0be'}}>$</span>
+                                            <input type="number" min="0" onKeyDown={blockInvalidChars} value={sub.monto} onChange={(e) => handleSubGastoChange(i, 'monto', e.target.value)} style={{...inputModalStyle, width: '100%', margin: 0, padding: '10px 10px 10px 25px', fontSize: '14px', background: '#fff', border: '1px solid #dfe6e9'}} />
+                                        </div>
+                                        <select value={sub.frecuencia} onChange={(e) => handleSubGastoChange(i, 'frecuencia', e.target.value)} style={{...inputModalStyle, flex: 1.5, margin: 0, padding: '10px', fontSize: '14px', background: '#fff', border: '1px solid #dfe6e9'}}>
+                                            <option value="Diario">Día</option>
+                                            <option value="Semanal">Semana</option>
+                                            <option value="Quincenal">Quincena</option>
+                                            <option value="Mensual">Mes</option>
+                                            <option value="Anual">Año</option>
+                                        </select>
+                                        {subGastos.length > 1 && <FaTimes onClick={() => removeSubGasto(i)} style={{ color: '#a4b0be', cursor: 'pointer', flexShrink: 0, padding: '5px', fontSize: '18px' }} />}
+                                    </div>
+                                ))}
+                                <span onClick={addSubGasto} style={{ color: '#007bff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginTop: '5px', display: 'inline-block' }}>+ Añadir fila</span>
+                                <button onClick={aplicarSubGastos} style={{ background: '#007bff', color: '#fff', border: 'none', padding: '15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', marginTop: '10px', width: '100%' }}>Aplicar Total</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {editMontoForm.nombreOriginal !== 'Gastos Fijos' && editMontoForm.nombreOriginal !== 'Gastos Variables' && (
+                         <button onClick={guardarEdicionMonto} style={{ ...btnMainAdd, width: '100%', marginTop: '20px' }}><FaSave /> Actualizar Cajón</button>
+                    )}
+                    {(editMontoForm.nombreOriginal === 'Gastos Fijos' || editMontoForm.nombreOriginal === 'Gastos Variables') && (
+                         <button onClick={guardarEdicionMonto} style={{ ...btnMainAdd, background: '#28a745', width: '100%', marginTop: '10px' }}><FaSave /> Guardar Cambios</button>
+                    )}
                 </div>
             )}
 
@@ -676,9 +783,27 @@ const Dashboard = () => {
 
             {isReconfigureOpen && (
                 <div className="modal-center" style={{...modalCenterStyle, width: '450px', maxHeight: '90vh', overflowY: 'auto'}}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><h3 style={{ margin: 0, color: '#007bff', display: 'flex', alignItems: 'center', gap: '8px' }}><FaCog /> Reconfigurar Finanzas</h3><FaTimes onClick={() => setIsReconfigureOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: '#a4b0be' }} /></div>
-                    <label style={labelModalStyle}>Saldo Físico Actual</label><input type="number" min="0" onKeyDown={blockInvalidChars} value={configForm.saldoActual} onChange={(e) => setConfigForm({...configForm, saldoActual: e.target.value})} style={{ ...inputModalStyle, fontSize: '20px', fontWeight: 'bold' }} />
-                    <label style={labelModalStyle}>Ciclo Maestro Base</label><select value={configForm.cicloMaestro} onChange={(e) => setConfigForm({...configForm, cicloMaestro: e.target.value})} style={inputModalStyle}><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option></select>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ margin: 0, color: '#007bff', display: 'flex', alignItems: 'center', gap: '8px' }}><FaCog /> Reconfigurar Finanzas</h3>
+                        <FaTimes onClick={() => setIsReconfigureOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: '#a4b0be' }} />
+                    </div>
+
+                    <label style={labelModalStyle}>Saldo Físico Actual</label>
+                    <input type="number" min="0" onKeyDown={blockInvalidChars} value={configForm.saldoActual} onChange={(e) => setConfigForm({...configForm, saldoActual: e.target.value})} style={{ ...inputModalStyle, fontSize: '20px', fontWeight: 'bold' }} />
+                    
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                        <div style={{flex: 1}}>
+                            <label style={labelModalStyle}>Ciclo Maestro Base</label>
+                            <select value={configForm.cicloMaestro} onChange={(e) => setConfigForm({...configForm, cicloMaestro: e.target.value})} style={inputModalStyle}>
+                                <option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option>
+                            </select>
+                        </div>
+                        <div style={{flex: 1}}>
+                            <label style={labelModalStyle}>Día de Cobro</label>
+                            <input type="number" min="1" max="31" value={configForm.diaInicioCiclo} onChange={(e) => setConfigForm({...configForm, diaInicioCiclo: e.target.value})} style={inputModalStyle} />
+                        </div>
+                    </div>
+
                     <label style={labelModalStyle}>Tus Ingresos</label>
                     {configForm.ingresos.map((ing, i) => (
                         <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
@@ -726,29 +851,13 @@ const Dashboard = () => {
             <CalendarFullScreen isOpen={isFullScreenCalendar} onClose={() => setIsFullScreenCalendar(false)} eventos={eventosCalendario} historial={historial} onDeleteEvent={handleDeleteEventFromCalendar} onSaveEvent={handleSaveEventFromCalendar} nombresMeses={['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']} diasSemana={['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa']} mesActualGlobal={mesActual} anioActualGlobal={anioActual} />
             <HistorialFullScreen isOpen={isHistorialOpen} onClose={() => setIsHistorialOpen(false)} historial={historial} />
             <MetasFullScreen isOpen={isMetasOpen} onClose={() => setIsMetasOpen(false)} onAddCajon={agregarCajonDesdeMetas} onReplaceAhorro={reemplazarAhorroAdmin} onOpenEmergencia={() => { setIsMetasOpen(false); setIsEmergenciaOpen(true); }} gastosFijosBase={cajones['Gastos Fijos']?.monto || 0} gastosVariablesBase={cajones['Gastos Variables']?.monto || 0} ingresosMensuales={ingresosMensuales} edadUsuario={18} cicloMaestro={cicloMaestro} />
-            <BovedaFullScreen isOpen={isBovedaFullScreenOpen} onClose={() => setIsBovedaFullScreenOpen(false)} saldoBoveda={boveda} saldoActual={saldoActual} saldoCajaFuerte={cajaFuerte} pinSeguridad={pinSeguridad} onTransaction={handleBovedaTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} />
             
-            <CajaFuerteFullScreen 
-                isOpen={isCajaFuerteFullScreenOpen} 
-                onClose={() => setIsCajaFuerteFullScreenOpen(false)} 
-                saldoCajaFuerte={cajaFuerte} 
-                saldoActual={saldoActual} 
-                saldoBoveda={boveda} 
-                pinSeguridad={pinSeguridad} 
-                onTransaction={handleCajaFuerteTransaction} 
-                historial={historial} 
-                eventosCalendario={eventosCalendario} 
-                onSaveEvent={handleSaveEventFromCalendar} 
-                onDeleteEvent={handleDeleteEventFromCalendar} 
-                mesActual={mesActual} 
-                anioActual={anioActual} 
-                cajones={cajones} 
-                ordenCajones={ordenCajones} 
-                completarMeta={completarReto} 
-                borrarMeta={borrarCajon}
-            />
+            <BovedaFullScreen isOpen={isBovedaFullScreenOpen} onClose={() => setIsBovedaFullScreenOpen(false)} saldoBoveda={boveda} saldoActual={saldoActual} saldoCajaFuerte={cajaFuerte} pinSeguridad={pinSeguridad} onTransaction={handleBovedaTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} cicloMaestro={cicloMaestro} onDeleteCajon={borrarCajon} />
             
-            <RetosFullScreen isOpen={isRetosFullScreenOpen} onClose={() => setIsRetosFullScreenOpen(false)} cajones={cajones} ordenCajones={ordenCajones} historial={historial} totalAcumulado={totalAcumuladoRetos} completarReto={completarReto} borrarReto={borrarCajon} />
+            <CajaFuerteFullScreen isOpen={isCajaFuerteFullScreenOpen} onClose={() => setIsCajaFuerteFullScreenOpen(false)} saldoCajaFuerte={cajaFuerte} saldoActual={saldoActual} saldoBoveda={boveda} pinSeguridad={pinSeguridad} onTransaction={handleCajaFuerteTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} ordenCajones={ordenCajones} completarMeta={completarReto} borrarMeta={borrarCajon} />
+            
+            {/* AQUÍ SE PASA EL EVENTOSCALENDARIO PARA QUE NO DE ERROR EL FILTER */}
+            <RetosFullScreen isOpen={isRetosFullScreenOpen} onClose={() => setIsRetosFullScreenOpen(false)} cajones={cajones} ordenCajones={ordenCajones} historial={historial} totalAcumulado={totalAcumuladoRetos} completarReto={completarReto} borrarReto={borrarCajon} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} />
 
             <div className="profile-sidebar" style={{ ...profileMenuSidebar, transform: isProfileOpen ? 'translateX(0)' : 'translateX(100%)' }}>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems: 'center'}}><h3 style={{ margin: 0, fontSize: '22px', color: '#2f3542' }}>Menú Principal</h3><FaTimes onClick={()=>setIsProfileOpen(false)} style={{cursor:'pointer', fontSize: '24px', color: '#a4b0be'}}/></div>
@@ -799,7 +908,7 @@ const Dashboard = () => {
                 </div>
                 <div style={{ ...remindersContainer, marginBottom: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}><h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', margin: 0, color: '#2f3542' }}><FaHistory color="#007bff" /> Últimos Movimientos</h4>{historial.length > 0 && <FaTrash onClick={limpiarHistorial} style={{ cursor: 'pointer', color: '#dc3545', fontSize: '12px' }} title="Vaciar Historial" />}</div>
-                    {historial.length === 0 ? ( <p style={{ margin: 0, fontSize: '12px', color: '#a4b0be' }}>Registra tus ingresos y gastos para ver el historial.</p> ) : ( <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>{historial.slice(0, 3).map(h => <div key={h.id} style={miniAlertCard} title={h.hora}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '13px' }}>{h.nombre}</span><span style={{ fontWeight: 'bold', fontSize: '13px', color: h.tipo === 'pago' ? '#28a745' : '#dc3545' }}>{h.tipo === 'pago' ? '+' : '-'}${h.monto}</span></div>)}</div> )}
+                    {historial.length === 0 ? ( <p style={{ margin: 0, fontSize: '12px', color: '#a4b0be' }}>Registra tus ingresos y gastos para ver el historial.</p> ) : ( <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>{historial.slice(0, 3).map(h => <div key={h.id} style={miniAlertCard} title={h.hora}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '13px' }}>{h.nombre}</span><span style={{ fontWeight: 'bold', fontSize: '13px', color: (h.tipo === 'pago' || h.tipo === 'ahorro_in') ? '#28a745' : '#dc3545' }}>{(h.tipo === 'pago' || h.tipo === 'ahorro_in') ? '+' : '-'}${h.monto}</span></div>)}</div> )}
                 </div>
             </aside>
 
@@ -832,12 +941,19 @@ const Dashboard = () => {
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                         {estadoCajones.map((cajon, index) => {
-                            if (cajon.nombre === 'Libre' || cajones[cajon.nombre]?.esRetoPagado) return null;
-                            const isFull = cajon.llenado >= cajon.meta; const isEmpty = cajon.llenado === 0; const realIndex = ordenCajones.indexOf(cajon.nombre);
-                            const canMoveUp = realIndex > 0 && isAdmin(ordenCajones[realIndex]) === isAdmin(ordenCajones[realIndex - 1]); const canMoveDown = realIndex < ordenCajones.length - 1 && isAdmin(ordenCajones[realIndex]) === isAdmin(ordenCajones[realIndex + 1]);
+                            if (cajon.nombre === 'Libre') return null; 
+                            
+                            const realIndex = ordenCajones.indexOf(cajon.nombre);
+                            const canMoveUp = realIndex > 0 && isAdmin(ordenCajones[realIndex]) === isAdmin(ordenCajones[realIndex - 1]); 
+                            const canMoveDown = realIndex < ordenCajones.length - 1 && isAdmin(ordenCajones[realIndex]) === isAdmin(ordenCajones[realIndex + 1]);
                             
                             const esImprevisto = cajones[cajon.nombre]?.frecuencia === 'Imprevisto_Pagado' || cajon.nombre.includes('Imprevisto');
                             const estaAsegurado = cajones[cajon.nombre]?.aseguradoEnCiclo;
+                            const esRetoPagado = cajones[cajon.nombre]?.esRetoPagado;
+
+                            const isAsegurado = estaAsegurado || esRetoPagado || cajon.completado;
+                            const isFull = cajon.llenado >= cajon.meta || isAsegurado; 
+                            const isEmpty = cajon.llenado === 0 && !isAsegurado;
 
                             return (
                                 <div key={cajon.nombre} style={cascadeCard}>
@@ -846,28 +962,111 @@ const Dashboard = () => {
                                             {isEditingCajones && (
                                                 <div style={{ display: 'flex', gap: '5px' }}><button onClick={() => moverCajonArribaAbajo(realIndex, 'up')} disabled={!canMoveUp || cajon.nombre === 'Deuda'} style={{...arrowBtn, opacity: (!canMoveUp || cajon.nombre === 'Deuda') ? 0.3 : 1}}><FaChevronUp /></button><button onClick={() => moverCajonArribaAbajo(realIndex, 'down')} disabled={!canMoveDown || cajon.nombre === 'Deuda'} style={{...arrowBtn, opacity: (!canMoveDown || cajon.nombre === 'Deuda') ? 0.3 : 1}}><FaChevronDown /></button><button onClick={() => abrirEdicionMonto(cajon.nombre)} style={{...arrowBtn, color: '#ff9f43', marginLeft: '5px'}}><FaEdit /></button>{!isAdmin(cajon.nombre) && <button onClick={() => borrarCajon(cajon.nombre, cajon.llenado)} style={{...arrowBtn, color: '#dc3545', marginLeft: '5px'}}><FaTrash /></button>}</div>
                                             )}
-                                            <span style={{ fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{background: '#f1f2f6', color: '#a4b0be', padding: '3px 10px', borderRadius: '8px', fontSize: '12px'}}>{realIndex + 1}</span>{cajon.nombre === 'Deuda' ? '🚨 DEUDA' : cajon.nombre} {isFull && <FaCheckCircle color="#28a745"/>} {isEmpty && <FaExclamationCircle color="#dc3545"/>}</span>
+                                            <span style={{ fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span style={{background: '#f1f2f6', color: '#a4b0be', padding: '3px 10px', borderRadius: '8px', fontSize: '12px'}}>{realIndex + 1}</span>
+                                                {cajon.nombre === 'Deuda' ? '🚨 DEUDA' : cajon.nombre} 
+                                                {isFull && <FaCheckCircle color="#28a745"/>} 
+                                                {isEmpty && <FaExclamationCircle color="#dc3545"/>}
+                                            </span>
                                         </div>
-                                        <span style={{ fontSize: '16px', fontWeight: 'bold' }}>${cajon.llenado.toLocaleString()} <span style={{fontSize:'13px', color:'#a4b0be', fontWeight:'normal'}}> / ${cajon.meta.toLocaleString()}</span></span>
+                                        <span style={{ fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            {cajon.completado ? (
+                                                <span style={{color: '#28a745'}}>¡COMPLETADO! 🎉</span>
+                                            ) : isAsegurado ? (
+                                                <span style={{color: '#28a745'}}>🛡️ Asegurado</span>
+                                            ) : (
+                                                `$${cajon.llenado.toLocaleString()}`
+                                            )}
+                                            {!cajon.completado && !isAsegurado && <span style={{fontSize:'13px', color:'#a4b0be', fontWeight:'normal'}}> / ${cajon.meta.toLocaleString()}</span>}
+                                        </span>
                                     </div>
-                                    <div style={progressBg}><div style={{ ...progressFill, width: `${cajon.porcentaje}%`, backgroundColor: isFull ? '#28a745' : isEmpty ? '#dc3545' : (cajon.nombre==='Deuda'?'#dc3545':'#ffc107') }}></div></div>
                                     
-                                    {isFull && !['Gastos Fijos', 'Gastos Variables', 'Deuda'].includes(cajon.nombre) && !cajon.nombre.includes('Capricho:') && !cajon.nombre.startsWith('Reto:') && !cajon.nombre.startsWith('Meta:') && !esImprevisto && !estaAsegurado && (
-                                        <button onClick={() => asegurarFondos(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: cajon.nombre === 'Fondo de Emergencia' ? '#e6f4ea' : '#eef3ff', color: cajon.nombre === 'Fondo de Emergencia' ? '#28a745' : '#007bff', border: `1px dashed ${cajon.nombre === 'Fondo de Emergencia' ? '#28a745' : '#007bff'}`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                            {cajon.nombre === 'Fondo de Emergencia' ? <FaShieldAlt /> : <FaLock />} Mover a {cajon.nombre === 'Fondo de Emergencia' ? 'Bóveda Intocable' : 'Caja Fuerte'}
-                                        </button>
-                                    )}
+                                    <div style={progressBg}>
+                                        <div style={{ ...progressFill, width: `${isAsegurado ? 100 : cajon.porcentaje}%`, backgroundColor: isFull ? '#28a745' : isEmpty ? '#dc3545' : (cajon.nombre==='Deuda'?'#dc3545':'#ffc107') }}></div>
+                                    </div>
+                                    
+                                    {/* 💡 ACORDEÓN DE PROGRESO */}
+                                    { (cajon.nombre === 'Fondo de Emergencia' || cajon.nombre.startsWith('Meta:') || cajon.nombre.startsWith('Reto:')) && (
+                                        <div style={{ marginTop: '15px', background: '#f8f9fa', borderRadius: '10px', border: '1px solid #e1e5ee', overflow: 'hidden' }}>
+                                            <div onClick={() => toggleCajon(cajon.nombre)} style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s', background: expandedCajones[cajon.nombre] ? '#eef3ff' : 'transparent' }}>
+                                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#2f3542' }}>
+                                                    {cajon.nombre === 'Fondo de Emergencia' ? 'Detalle de Bóveda' : 'Progreso Acumulado'}
+                                                </span>
+                                                <span style={{ color: '#007bff' }}>{expandedCajones[cajon.nombre] ? <FaChevronUp /> : <FaChevronDown />}</span>
+                                            </div>
+                                            
+                                            {expandedCajones[cajon.nombre] && (() => {
+                                                let acumuladoReal = 0;
+                                                let metaTotalAcordeon = 0;
 
-                                    {estaAsegurado && (
-                                        <div style={{ marginTop: '15px', background: '#f8f9fa', padding: '10px', borderRadius: '10px', textAlign: 'center', color: '#28a745', fontWeight: 'bold', border: '1px dashed #28a745' }}>
-                                            <FaCheckCircle /> Asegurado en este ciclo
+                                                if (cajon.nombre === 'Fondo de Emergencia') {
+                                                    acumuladoReal = boveda;
+                                                    metaTotalAcordeon = cajones['Fondo de Emergencia']?.metaTotal || 0;
+                                                } else if (cajon.nombre.startsWith('Meta:')) {
+                                                    acumuladoReal = cajones[cajon.nombre]?.acumulado || 0;
+                                                    const match = cajon.nombre.match(/\(Total: (\d+(\.\d+)?)\)/);
+                                                    metaTotalAcordeon = match ? parseFloat(match[1]) : 0;
+                                                } else if (cajon.nombre.startsWith('Reto:')) {
+                                                    acumuladoReal = cajones[cajon.nombre]?.acumulado || 0;
+                                                    const match = cajon.nombre.match(/\((\d+)\s*ciclos\)/);
+                                                    const ciclos = match ? parseInt(match[1]) : 0;
+                                                    metaTotalAcordeon = ciclos * cajon.meta;
+                                                }
+
+                                                const porcentajeAcumulado = metaTotalAcordeon > 0 ? Math.min((acumuladoReal / metaTotalAcordeon) * 100, 100) : 0;
+
+                                                return (
+                                                    <div style={{ padding: '0 15px 15px 15px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 'bold', color: '#2f3542', marginBottom: '8px' }}>
+                                                            <span>{cajon.nombre === 'Fondo de Emergencia' ? 'Fondo Acumulado (Bóveda)' : 'Total Guardado'}</span>
+                                                            {metaTotalAcordeon > 0 ? (
+                                                                <span style={{color: '#28a745'}}>${acumuladoReal.toLocaleString()} / ${metaTotalAcordeon.toLocaleString()}</span>
+                                                            ) : (
+                                                                <span style={{color: '#ffc107', fontSize: '12px'}}>⚠️ Define la meta</span>
+                                                            )}
+                                                        </div>
+                                                        {metaTotalAcordeon > 0 && (
+                                                            <div style={{ width: '100%', height: '8px', background: '#e1e5ee', borderRadius: '4px', overflow: 'hidden' }}>
+                                                                <div style={{ height: '100%', width: `${porcentajeAcumulado}%`, background: '#28a745', transition: '0.3s' }}></div>
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {cajon.completado ? (
+                                                            <div style={{ marginTop: '15px', padding: '10px', borderRadius: '8px', textAlign: 'center', color: '#28a745', fontWeight: 'bold', background: '#e6f4ea', border: '1px solid #28a745', fontSize: '13px' }}>
+                                                                🎉 ¡Objetivo 100% Completado!
+                                                            </div>
+                                                        ) : (
+                                                            isAsegurado && (
+                                                                <div style={{ marginTop: '15px', padding: '10px', borderRadius: '8px', textAlign: 'center', color: '#28a745', fontWeight: 'bold', border: '1px dashed #28a745', fontSize: '13px' }}>
+                                                                    <FaCheckCircle /> Pago guardado en este ciclo
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     )}
 
-                                    {isFull && (cajon.nombre.startsWith('Reto:') || cajon.nombre.startsWith('Meta:')) && !cajones[cajon.nombre]?.esRetoPagado && ( 
-                                        <button onClick={() => abonarReto(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: cajon.nombre.startsWith('Meta:') ? '#eef3ff' : '#fce3ed', color: cajon.nombre.startsWith('Meta:') ? '#007bff' : '#e83e8c', border: `1px dashed ${cajon.nombre.startsWith('Meta:') ? '#007bff' : '#e83e8c'}`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                            <FaPiggyBank /> Guardar {cajon.nombre.startsWith('Meta:') ? 'Ahorro' : 'Pago'} del Ciclo
-                                        </button> 
+                                    {/* BOTONES DE MOVER O GUARDAR (SOLO SI NO ESTÁ COMPLETADO O ASEGURADO) */}
+                                    {!cajon.completado && !isAsegurado && isFull && (
+                                        <>
+                                            {cajon.nombre === 'Fondo de Emergencia' ? (
+                                                <button onClick={() => asegurarFondos(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: '#e6f4ea', color: '#28a745', border: `1px dashed #28a745`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                    <FaShieldAlt /> Mover a Bóveda Intocable
+                                                </button>
+                                            ) : (cajon.nombre.startsWith('Reto:') || cajon.nombre.startsWith('Meta:')) ? (
+                                                <button onClick={() => abonarReto(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: cajon.nombre.startsWith('Meta:') ? '#eef3ff' : '#fce3ed', color: cajon.nombre.startsWith('Meta:') ? '#007bff' : '#e83e8c', border: `1px dashed ${cajon.nombre.startsWith('Meta:') ? '#007bff' : '#e83e8c'}`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                    <FaPiggyBank /> Guardar {cajon.nombre.startsWith('Meta:') ? 'Ahorro' : 'Pago'} del Ciclo
+                                                </button> 
+                                            ) : (
+                                                !['Gastos Fijos', 'Gastos Variables', 'Deuda'].includes(cajon.nombre) && !esImprevisto && (
+                                                    <button onClick={() => asegurarFondos(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: '#eef3ff', color: '#007bff', border: `1px dashed #007bff`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                        <FaLock /> Mover a Caja Fuerte
+                                                    </button>
+                                                )
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             );
@@ -879,7 +1078,7 @@ const Dashboard = () => {
                     <div style={cajonesGridStyle}>
                         {estadoCajones.map((cajon, index) => {
                             if (cajon.nombre === 'Libre') return null;
-                            const isFull = cajon.llenado >= cajon.meta;
+                            const isFull = cajon.llenado >= cajon.meta || cajon.completado || cajones[cajon.nombre]?.esRetoPagado || cajones[cajon.nombre]?.aseguradoEnCiclo;
                             const isImp = cajon.nombre.includes('🚨') || cajon.nombre.includes('Imprevisto');
                             return (
                                 <div key={index} style={cajonCard}>
@@ -896,7 +1095,6 @@ const Dashboard = () => {
                     <div style={{ height: '100px' }}></div>
                 </div>
                 
-                {/* 💡 RENDERIZADO CONDICIONAL DEL TUTORIAL */}
                 {showTutorial && (
                     <GuiaTutorial 
                         seccion="dashboard_principal_v1"
@@ -905,7 +1103,6 @@ const Dashboard = () => {
                             { titulo: "El Poder del Sobrante 💸", contenido: "Si te sobra dinero al final del ciclo (Cajón Libre), significa que tu estrategia funcionó y gastaste menos de lo que ganaste." },
                             { titulo: "Corte de Ciclo 🔄", contenido: "Cuando llegue tu Día de Pago, la app te pedirá hacer cuentas de los cajones llenos para saber qué gastaste y qué te sobró." }
                         ]}
-                        // Si tu componente tiene prop para cerrarlo, úsala aquí
                         onClose={() => setShowTutorial(false)}
                     />
                 )}

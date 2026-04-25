@@ -214,7 +214,9 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}><label style={{...labelStyle, marginBottom: 0, color: '#2f3542'}}>Aporte por <b>{cicloMaestro}</b></label><button onClick={sugerirAporteEmergencia} style={{...miniMagicBtn, background: '#e6f4ea', color: '#28a745'}}><FaLightbulb /> Sugerir Aporte</button></div>
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{fontWeight: 'bold', fontSize: '20px', color: '#a4b0be'}}>$</span><input type="number" min="0" onKeyDown={blockInvalidChars} value={aporteEmergencia} onChange={e => { setAporteEmergencia(e.target.value); setSugerenciaEmergenciaUsada(false); }} style={{...inputStyle, marginBottom: 0, flex: 1}} /></div>
                     {mensajeTiempo && <div style={{ marginTop: '10px', color: '#2f3542', fontSize: '15px', background: '#f1f2f6', padding: '12px', borderRadius: '10px', border: '1px solid #dfe6e9' }}><b>{mensajeTiempo}</b></div>}
-                    <button onClick={() => { if(!aporteEmergencia || aporteEmergencia<=0) return alert('Ingresa un monto.'); onAddCajon('Fondo de Emergencia', parseFloat(aporteEmergencia), cicloMaestro); onClose(); }} style={{ ...actionBtnStyle, background: '#28a745', marginTop: '25px' }}><FaPlus /> Crear Cajón</button>
+                    
+                    {/* 💡 AQUÍ SE AÑADIÓ totalFondo COMO 4TO PARÁMETRO PARA LA BD */}
+                    <button onClick={() => { if(!aporteEmergencia || aporteEmergencia<=0) return alert('Ingresa un monto.'); onAddCajon('Fondo de Emergencia', parseFloat(aporteEmergencia), cicloMaestro, totalFondo); onClose(); }} style={{ ...actionBtnStyle, background: '#28a745', marginTop: '25px' }}><FaPlus /> Crear Cajón</button>
                 </div>
             </div>
         );
