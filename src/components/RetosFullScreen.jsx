@@ -21,12 +21,9 @@ const RetosFullScreen = ({
     const historialRetos = historial.filter(h => h.nombre.includes('Micro-Reto') || h.nombre.includes('Capricho') || h.nombre.includes('Reto:'));
     const localEventos = eventosCalendario.filter(e => e.categoria === 'Reto');
 
-    // 💡 LÓGICA DE SALDO REAL (Flujo + Histórico)
-    const totalFlujoReal = retosActivos.reduce((total, nombre) => {
-        const c = cajones[nombre];
-        const acumuladoHistorico = c?.acumulado || 0;
-        const llenadoCicloActual = c?.esRetoPagado ? 0 : (c?.llenado || c?.monto || 0);
-        return total + acumuladoHistorico + llenadoCicloActual;
+    // 💡 FIX: SOLO SUMA EL DINERO QUE YA FUE OFICIALMENTE "ASEGURADO" (EL ACUMULADO)
+    const totalAcumuladoReal = retosActivos.reduce((total, nombre) => {
+        return total + (cajones[nombre]?.acumulado || 0);
     }, 0);
 
     // 💡 LÓGICA DEL CALENDARIO
@@ -107,7 +104,7 @@ const RetosFullScreen = ({
                 <div style={acumuladoCard}>
                     <FaPiggyBank style={{ fontSize: '40px', color: '#e83e8c', marginBottom: '10px' }} />
                     <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#e83e8c', fontWeight: 'bold', textTransform: 'uppercase' }}>Dinero en tus Caprichos</p>
-                    <h1 className="acumulado-total" style={{ margin: 0, fontSize: '56px', color: '#e83e8c', fontWeight: 'bold' }}>${totalFlujoReal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h1>
+                    <h1 className="acumulado-total" style={{ margin: 0, fontSize: '56px', color: '#e83e8c', fontWeight: 'bold' }}>${totalAcumuladoReal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h1>
                 </div>
 
                 <div className="retos-grid-main" style={gridStyle}>

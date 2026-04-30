@@ -29,7 +29,7 @@ const BienvenidaFullScreen = ({ onFinish }) => {
     // ==========================================
     // CALCULADORA INTELIGENTE BANCARIA
     // ==========================================
-    const [calculadoraAbierta, setCalculadoraAbierta] = useState(null);
+    const [calculadoraAbierta, setCalculadoraAbierta] = useState(null); // Puede ser string (nombre admin) o número (índice extra)
     const [itemsCalc, setItemsCalc] = useState([{ concepto: '', monto: '', frecuencia: 'Mensual' }]);
 
     // 🛡️ FILTRO ANTI-NEGATIVOS UNIVERSAL
@@ -98,29 +98,36 @@ const BienvenidaFullScreen = ({ onFinish }) => {
         return itemsCalc.reduce((sum, item) => sum + convertirACicloMaestro(item.monto, item.frecuencia, ciclo), 0);
     };
 
-    const abrirCalculadora = (adminName) => {
-        if (calculadoraAbierta === adminName) {
+    // 💡 AHORA ACEPTA ÍNDICES PARA CAJONES EXTRA O STRINGS PARA ADMINS
+    const abrirCalculadora = (identificador) => {
+        if (calculadoraAbierta === identificador) {
             setCalculadoraAbierta(null);
         } else {
             setItemsCalc([{ concepto: '', monto: '', frecuencia: 'Mensual' }]);
-            setCalculadoraAbierta(adminName);
+            setCalculadoraAbierta(identificador);
         }
     };
 
     const aplicarCalculo = () => {
         const totalCalculado = calcularSumaCalculadora();
         const valorLimpio = Math.round(totalCalculado * 100) / 100;
-        setAdmins(prevAdmins => ({
-            ...prevAdmins, 
-            [calculadoraAbierta]: valorLimpio === 0 ? '' : valorLimpio
-        }));
+
+        if (typeof calculadoraAbierta === 'number') {
+            // Es un cajón extra o deuda
+            updateCajonExtra(calculadoraAbierta, valorLimpio === 0 ? '' : valorLimpio);
+        } else {
+            // Es un administrador base
+            setAdmins(prevAdmins => ({
+                ...prevAdmins, 
+                [calculadoraAbierta]: valorLimpio === 0 ? '' : valorLimpio
+            }));
+        }
         setCalculadoraAbierta(null);
     };
 
     const handleNext = () => {
         if (step === 2 && (!nombre || !fechaNacimiento || !saldo)) return alert("⚠️ Llena tu nombre, fecha y saldo inicial para continuar.");
         if (step === 3 && (!ingresos[0].monto)) return alert("⚠️ Necesitas registrar al menos una fuente de ingresos.");
-        if (step === 7 && pin.length !== 4) return alert("⚠️ Crea un NIP exacto de 4 dígitos.");
         setStep(step + 1);
     };
 
@@ -137,6 +144,11 @@ const BienvenidaFullScreen = ({ onFinish }) => {
     };
 
     const handleFinalize = () => {
+        // 🛡️ CANDADO DE SEGURIDAD EXTREMA: El PIN debe ser sí o sí de 4 números
+        if (!pin || pin.length !== 4) {
+            return alert("🚨 SEGURIDAD OBLIGATORIA: Debes crear un NIP exacto de 4 números para proteger tu cuenta.");
+        }
+
         let configFinalCajones = {
             'Gastos Fijos': { monto: Math.abs(limpiarMonto(admins['Gastos Fijos'])), frecuencia: ciclo },
             'Gastos Variables': { monto: Math.abs(limpiarMonto(admins['Gastos Variables'])), frecuencia: ciclo },
@@ -338,7 +350,7 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                                         </div>
                                         <div style={{display: 'flex', gap: '8px', alignItems: 'center', width: '100%', justifyContent: 'flex-end'}}>
                                             {adm !== 'Ahorro' && (
-                                                <button onClick={() => abrirCalculadora(adm)} style={{...calcBtnStyle, background: calculadoraAbierta === adm ? '#007bff' : '#f8f9fa', color: calculadoraAbierta === adm ? '#fff' : '#007bff'}}>
+                                                <button onClick={() => abrirCalculadora(adm)} style={{...calcBtnStyle, background: calculadoraAbierta === adm ? '#007bff' : '#f8f9fa', color: calculadoraAbierta === adm ? '#fff' : '#007bff'}} title="Calculadora Inteligente">
                                                     {calculadoraAbierta === adm ? <FaTimes /> : <FaCalculator />}
                                                 </button>
                                             )}
@@ -381,11 +393,34 @@ const BienvenidaFullScreen = ({ onFinish }) => {
                         </div>
 
                         {cajonesExtra.map((c, i) => (
-                            <div key={i} style={adminBox}>
+                            <div key={i} style={{...adminBox, borderColor: calculadoraAbierta === i ? '#007bff' : '#e1e5ee'}}>
                                 <div className="mobile-flex-col" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                     <b style={{width: '100%'}}>{c.nombre}</b>
-                                    <input type="number" min="0" onKeyDown={preventMinus} placeholder="$ Meta" value={c.monto} onChange={e=>updateCajonExtra(i, e.target.value)} style={inputMini} className="input-focus mobile-input-full" />
+                                    <div style={{display: 'flex', gap: '8px', alignItems: 'center', width: '100%', justifyContent: 'flex-end'}}>
+                                        {/* 💡 AQUÍ SE AÑADIÓ LA CALCULADORA A LOS EXTRAS */}
+                                        <button onClick={() => abrirCalculadora(i)} style={{...calcBtnStyle, background: calculadoraAbierta === i ? '#007bff' : '#f8f9fa', color: calculadoraAbierta === i ? '#fff' : '#007bff'}} title="Calculadora Inteligente">
+                                            {calculadoraAbierta === i ? <FaTimes /> : <FaCalculator />}
+                                        </button>
+                                        <input type="number" min="0" onKeyDown={preventMinus} placeholder="$ Meta" value={c.monto} onChange={e=>updateCajonExtra(i, e.target.value)} style={inputMini} className="input-focus mobile-input-full" />
+                                    </div>
                                 </div>
+                                {/* 💡 PANEL DE CALCULADORA PARA EXTRAS */}
+                                {calculadoraAbierta === i && (
+                                    <div className="calc-panel" style={calcInnerBox}>
+                                        <h4 style={{fontSize:'14px', color:'#007bff', margin:'0 0 15px 0'}}>Conversión a {ciclo}</h4>
+                                        {itemsCalc.map((item, idx) => (
+                                            <div key={idx} className="calc-mobile-flex" style={{display:'flex', gap:'8px', marginBottom:'12px', width: '100%'}}>
+                                                <input type="text" placeholder="Concepto" value={item.concepto} onChange={e=>updateCalcItem(idx, 'concepto', e.target.value)} style={{...inputCalc, width: '30%'}} className="mobile-input-full" />
+                                                <input type="number" min="0" onKeyDown={preventMinus} placeholder="$" value={item.monto} onChange={e=>updateCalcItem(idx, 'monto', e.target.value)} style={{...inputCalc, width: '30%'}} className="mobile-input-full" />
+                                                <select value={item.frecuencia} onChange={e=>updateCalcItem(idx, 'frecuencia', e.target.value)} style={{...inputCalc, width: '40%'}} className="mobile-input-full">
+                                                    <option value="Diario">Día</option><option value="Semanal">Sem</option><option value="Quincenal">Quince</option><option value="Mensual">Mes</option><option value="Anual">Año</option>
+                                                </select>
+                                            </div>
+                                        ))}
+                                        <button onClick={()=>setItemsCalc([...itemsCalc, {concepto:'', monto:'', frecuencia:'Mensual'}])} style={addBtnMini}>+ Añadir</button>
+                                        <button onClick={aplicarCalculo} style={btnAplicarCalc}>Aplicar Total</button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                         <button onClick={handleNext} style={btnStyle} className="btn-hover">Siguiente <FaArrowRight /></button>
@@ -421,7 +456,7 @@ const labelStyle = { display:'block', fontSize:'14px', fontWeight:'bold', color:
 const adminBox = { background:'#fff', border:'2px solid', padding:'20px', borderRadius:'20px', marginBottom:'15px', boxShadow: '0 5px 15px rgba(0,0,0,0.02)', transition: 'all 0.2s', width: '100%', boxSizing: 'border-box' };
 const adminDesc = { fontSize:'13px', color:'#747d8c', display: 'block', marginTop: '4px' };
 const inputMini = { padding:'12px', borderRadius:'12px', border:'2px solid #e1e5ee', outline:'none', fontWeight:'bold', fontSize:'16px', width: '110px', textAlign: 'center', background: '#f8f9fa', color: '#2f3542', transition: 'all 0.2s', margin: 0, boxSizing: 'border-box' };
-const sugBtn = { padding:'12px 20px', borderRadius:'15px', fontWeight:'bold', cursor:'pointer', fontSize:'14px', transition: 'all 0.2s', width: '100%', boxSizing: 'border-box' };
+const sugBtn = { padding:'12px 20px', borderRadius:'15px', fontWeight:'bold', cursor:'pointer', fontSize:'14px', transition: 'all 0.2s', width: '100%', boxSizing: 'border-box', border: '1px solid currentColor', background: 'transparent' };
 const tipBox = { display: 'flex', alignItems: 'center', gap: '15px', background: '#fff9e6', padding: '15px 20px', borderRadius: '15px', borderLeft: '4px solid #f39c12', marginBottom: '25px', textAlign: 'left', width: '100%', boxSizing: 'border-box' };
 
 const calcBtnStyle = { padding: '14px', borderRadius: '12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', transition: 'all 0.2s' };

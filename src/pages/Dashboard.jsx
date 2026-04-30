@@ -12,7 +12,7 @@ import RetosFullScreen from '../components/RetosFullScreen';
 import { 
     FaWallet, FaArrowUp, FaArrowDown, FaSignOutAlt, FaCog, FaBoxOpen, 
     FaShieldAlt, FaCheckCircle, FaExclamationCircle, FaPlus, 
-    FaUserEdit, FaTimes, FaCalendarAlt, FaTrash, 
+    FaUserEdit, FaTimes, FaCalendarAlt, FaTrash, FaLightbulb,
     FaChevronUp, FaChevronDown, FaExclamationTriangle, FaHistory, FaSave,
     FaBullseye, FaEdit, FaPiggyBank, FaLock, FaSyncAlt, FaGamepad, FaUserTimes
 } from 'react-icons/fa';
@@ -55,6 +55,8 @@ const Dashboard = () => {
     const [isEmergenciaOpen, setIsEmergenciaOpen] = useState(false); 
     const [isEditingCajones, setIsEditingCajones] = useState(false);
     
+    const [showSobranteAlert, setShowSobranteAlert] = useState(true);
+    
     const [expandedCajones, setExpandedCajones] = useState({});
     const toggleCajon = (nombre) => {
         setExpandedCajones(prev => ({ ...prev, [nombre]: !prev[nombre] }));
@@ -81,7 +83,7 @@ const Dashboard = () => {
     const [eventForm, setEventForm] = useState({ nombre: '', monto: '', tipo: 'gasto', frecuencia: 'Único' });
     const [isImprevistoModalOpen, setIsImprevistoModalOpen] = useState(false);
     const [imprevistoForm, setImprevistoForm] = useState({ nombre: '', monto: '' });
-    const [nuevoCajon, setNuevoCajon] = useState({ nombre: '', monto: '', frecuencia: 'Mensual' });
+    const [nuevoCajon, setNuevoCajon] = useState({ tipo: 'Fijo', nombre: '', monto: '', frecuencia: 'Mensual', costoTotal: '', ciclos: '' });
     
     const [isReconfigureOpen, setIsReconfigureOpen] = useState(false);
     const [configForm, setConfigForm] = useState({ saldoActual: 0, cicloMaestro: 'Mensual', diaInicioCiclo: '1', ingresos: [] });
@@ -365,6 +367,32 @@ const Dashboard = () => {
         setIsMetasOpen(false);
     };
 
+    const handleManualReto = (nombre, action) => {
+        const cleanName = nombre.replace(/ \(\d+ ciclos\)/, '').replace(/ \(Total: [\d.]+\)/, '').replace('Meta: ', '').replace('Reto: ', '');
+        const monto = parseFloat(window.prompt(`¿Cuánto deseas ${action === 'add' ? 'ingresar a' : 'retirar de'} ${cleanName}?`));
+        if (!monto || isNaN(monto) || monto <= 0) return;
+        
+        if (action === 'add') {
+            let esExterno = false;
+            if (monto > saldoActual) {
+                const conf = window.confirm(`❌ No tienes $${monto} en tu saldo físico disponible ($${saldoActual.toLocaleString()}).\n\n¿Tienes este dinero en otra parte (ej. en efectivo o en otra cuenta) y quieres sumarlo a la meta sin afectar tu cascada actual?`);
+                if(!conf) return;
+                esExterno = true;
+            }
+            
+            registrarEnHistorial(esExterno ? `Abono externo a ${cleanName}` : `Abono a ${cleanName}`, monto, esExterno ? 'pago' : 'gasto', saldoActual, esExterno ? saldoActual : saldoActual - monto);
+            if (!esExterno) setSaldoActual(p => p - monto);
+            setCajones(prev => ({ ...prev, [nombre]: { ...prev[nombre], acumulado: (prev[nombre].acumulado || 0) + monto } }));
+        } else {
+            const max = cajones[nombre].acumulado || 0;
+            if (monto > max) return alert('❌ No tienes tanto dinero acumulado en esta meta.');
+            
+            registrarEnHistorial(`Retiro de ${cleanName}`, monto, 'pago', saldoActual, saldoActual + monto);
+            setSaldoActual(p => p + monto);
+            setCajones(prev => ({ ...prev, [nombre]: { ...prev[nombre], acumulado: (prev[nombre].acumulado || 0) - monto } }));
+        }
+    };
+
     const abonarReto = (nombre, llenado) => {
         const title = nombre.startsWith('Meta:') ? 'Ahorro Inteligente' : 'Micro-Reto';
         if (window.confirm(`¿Abonar $${llenado.toLocaleString()} a tu ${title}?\n\nEl dinero se guardará en tu acumulado y este cajón quedará "Asegurado" por el resto del ciclo.`)) {
@@ -460,9 +488,23 @@ const Dashboard = () => {
     const handleDeleteEventFromCalendar = (id) => { if (window.confirm("¿Eliminar alerta?")) setEventosCalendario(eventosCalendario.filter(e => e.id !== id)); };
 
     const handleGuardarNuevoCajon = () => {
-        if (!nuevoCajon.nombre || !nuevoCajon.monto) return alert('Llena todos los campos.');
-        setCajones(prev => ({ ...prev, [nuevoCajon.nombre]: { monto: parseFloat(nuevoCajon.monto), frecuencia: nuevoCajon.frecuencia, acumulado: 0, esRetoPagado: false } }));
-        setOrdenCajones(prev => [...prev, nuevoCajon.nombre]); setIsAddModalOpen(false); setNuevoCajon({ nombre: '', monto: '', frecuencia: 'Mensual' });
+        if (nuevoCajon.tipo === 'Fijo') {
+            if (!nuevoCajon.nombre || !nuevoCajon.monto) return alert('Llena todos los campos.');
+            setCajones(prev => ({ ...prev, [nuevoCajon.nombre]: { monto: parseFloat(nuevoCajon.monto), frecuencia: nuevoCajon.frecuencia, acumulado: 0, esRetoPagado: false } }));
+            setOrdenCajones(prev => [...prev, nuevoCajon.nombre]); 
+            setIsAddModalOpen(false); 
+            setNuevoCajon({ tipo: 'Fijo', nombre: '', monto: '', frecuencia: 'Mensual', costoTotal: '', ciclos: '' });
+        }
+    };
+
+    // 💡 SOLUCIÓN: Agregamos la función crearReto faltante
+    const crearReto = (nom, cuotaReal, numCiclos) => {
+        if (!nom) return alert('Ponle nombre a tu reto.');
+        const fullName = `Reto: ${nom} (${numCiclos} ciclos)`;
+        setCajones(prev => ({ ...prev, [fullName]: { monto: parseFloat(cuotaReal), frecuencia: cicloMaestro, acumulado: 0, esRetoPagado: false } }));
+        setOrdenCajones(prev => [...prev, fullName]); 
+        setIsAddModalOpen(false); 
+        setNuevoCajon({ tipo: 'Fijo', nombre: '', monto: '', frecuencia: 'Mensual', costoTotal: '', ciclos: '' });
     };
 
     const handleGuardarImprevisto = () => {
@@ -561,7 +603,7 @@ const Dashboard = () => {
         }
     };
 
-    const abrirEditarPerfil = () => { const pass = ''; setProfileForm({ nombre: userName, correo: email, fechaNacimiento: fechaNacimiento, password: '', confirmPassword: '', pin: '', confirmPin: '' }); setIsProfileOpen(false); setIsEditProfileOpen(true); };
+    const abrirEditarPerfil = () => { setProfileForm({ nombre: userName, correo: email, fechaNacimiento: fechaNacimiento, password: '', confirmPassword: '', pin: '', confirmPin: '' }); setIsProfileOpen(false); setIsEditProfileOpen(true); };
     
     const handleGuardarPerfil = () => {
         if (!profileForm.nombre) return alert("❌ Nombre vacío."); 
@@ -628,7 +670,6 @@ const Dashboard = () => {
     const disponibleLibre = estadoCajones.find(c => c.nombre === 'Libre')?.llenado || 0;
     const sobranteCiclo = totalIngresosCiclo - totalAsignadoBase;
 
-    // 💡 FIX LÓGICO: Solo contar "Retos" (no Metas) en el total de la alcancía rosa
     const totalAcumuladoRetos = Object.keys(cajones).reduce((acc, key) => {
         if (key.startsWith('Reto:') || key.includes('Capricho:')) {
             return acc + (cajones[key].acumulado || 0);
@@ -829,12 +870,85 @@ const Dashboard = () => {
                 </div>
             )}
 
+            {/* CREADOR INTELIGENTE DE METAS/RETOS */}
             {isAddModalOpen && (
-                <div className="modal-center" style={modalCenterStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><h3 style={{ margin: 0 }}>Nuevo Cajón</h3><FaTimes onClick={() => setIsAddModalOpen(false)} style={{ cursor: 'pointer', color: '#a4b0be' }} /></div>
-                    <input type="text" placeholder="Nombre" onChange={(e) => setNuevoCajon({...nuevoCajon, nombre: e.target.value})} style={inputModalStyle} />
-                    <div style={{ display: 'flex', gap: '10px' }}><input type="number" min="0" onKeyDown={blockInvalidChars} placeholder="Monto" onChange={(e) => setNuevoCajon({...nuevoCajon, monto: e.target.value})} style={{ ...inputModalStyle, flex: 1, margin: 0 }} /><select onChange={(e) => setNuevoCajon({...nuevoCajon, frecuencia: e.target.value})} style={{ ...inputModalStyle, flex: 1, margin: 0 }} defaultValue="Mensual"><option>Único</option><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Anual</option></select></div>
-                    <button onClick={handleGuardarNuevoCajon} style={{ ...btnMainAdd, width: '100%', marginTop: '20px' }}>Crear Cajón</button>
+                <div className="modal-center" style={{...modalCenterStyle, width: '420px'}}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ margin: 0, color: '#2f3542' }}>Nuevo Cajón</h3>
+                        <FaTimes onClick={() => setIsAddModalOpen(false)} style={{ cursor: 'pointer', color: '#a4b0be' }} />
+                    </div>
+
+                    <div style={typeSelectorGrid}>
+                        <button onClick={() => setNuevoCajon({...nuevoCajon, tipo: 'Fijo'})} style={{ ...typeBtn, border: nuevoCajon.tipo === 'Fijo' ? '2px solid #007bff' : '1px solid #e1e5ee', background: nuevoCajon.tipo === 'Fijo' ? '#eef3ff' : '#fff', color: nuevoCajon.tipo === 'Fijo' ? '#007bff' : '#2f3542' }}>Cajón Fijo</button>
+                        <button onClick={() => setNuevoCajon({...nuevoCajon, tipo: 'Reto'})} style={{ ...typeBtn, border: nuevoCajon.tipo === 'Reto' ? '2px solid #e83e8c' : '1px solid #e1e5ee', background: nuevoCajon.tipo === 'Reto' ? '#fce3ed' : '#fff', color: nuevoCajon.tipo === 'Reto' ? '#e83e8c' : '#2f3542' }}>Micro-Reto</button>
+                    </div>
+
+                    {nuevoCajon.tipo === 'Fijo' ? (
+                        <>
+                            <input type="text" placeholder="Nombre de la meta" value={nuevoCajon.nombre} onChange={(e) => setNuevoCajon({...nuevoCajon, nombre: e.target.value})} style={inputModalStyle} />
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <input type="number" min="0" onKeyDown={blockInvalidChars} placeholder="Monto" value={nuevoCajon.monto} onChange={(e) => setNuevoCajon({...nuevoCajon, monto: e.target.value})} style={{ ...inputModalStyle, flex: 1, margin: 0 }} />
+                                <select value={nuevoCajon.frecuencia} onChange={(e) => setNuevoCajon({...nuevoCajon, frecuencia: e.target.value})} style={{ ...inputModalStyle, flex: 1, margin: 0 }}>
+                                    <option>Único</option><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Anual</option>
+                                </select>
+                            </div>
+                            <button onClick={handleGuardarNuevoCajon} style={{ ...btnMainAdd, width: '100%', marginTop: '20px', background: '#007bff' }}>Crear Cajón Fijo</button>
+                        </>
+                    ) : (
+                        <>
+                            <input type="text" placeholder="¿Qué capricho quieres? (Ej. Tenis)" value={nuevoCajon.nombre} onChange={(e) => setNuevoCajon({...nuevoCajon, nombre: e.target.value})} style={inputModalStyle} />
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                                <div style={{flex: 1, position: 'relative'}}>
+                                    <span style={{position: 'absolute', left: '10px', top: '15px', color: '#a4b0be'}}>$</span>
+                                    <input type="number" min="0" onKeyDown={blockInvalidChars} placeholder="Costo Total" value={nuevoCajon.costoTotal} onChange={(e) => setNuevoCajon({...nuevoCajon, costoTotal: e.target.value})} style={{ ...inputModalStyle, paddingLeft: '25px', margin: 0 }} />
+                                </div>
+                                <div style={{flex: 1, position: 'relative'}}>
+                                    <input type="number" min="1" onKeyDown={blockInvalidChars} placeholder="Ciclos" value={nuevoCajon.ciclos} onChange={(e) => setNuevoCajon({...nuevoCajon, ciclos: e.target.value})} style={{ ...inputModalStyle, paddingRight: '50px', margin: 0 }} />
+                                    <span style={{position: 'absolute', right: '10px', top: '15px', color: '#a4b0be', fontSize: '12px'}}>ciclos</span>
+                                </div>
+                            </div>
+
+                            {(() => {
+                                const costoT = parseFloat(nuevoCajon.costoTotal) || 0;
+                                const cics = parseInt(nuevoCajon.ciclos) || 0;
+                                if (costoT > 0 && cics > 0) {
+                                    const cuota = costoT / cics;
+                                    if (cuota > sobranteCiclo && sobranteCiclo > 0) {
+                                        const ciclosViables = Math.ceil(costoT / sobranteCiclo);
+                                        const cuotaViable = costoT / ciclosViables;
+                                        return (
+                                            <div style={{ background: '#fce8e6', border: '1px solid #dc3545', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
+                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#dc3545', fontWeight: 'bold' }}>
+                                                    🚨 ¡Peligro! Tu cuota sería de ${cuota.toLocaleString(undefined, {maximumFractionDigits:2})} y solo tienes ${sobranteCiclo.toLocaleString(undefined, {maximumFractionDigits:2})} libres.
+                                                </p>
+                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuotaViable, ciclosViables)} style={{ ...btnMainAdd, width: '100%', background: '#28a745', marginBottom: '10px', fontSize: '13px', padding: '12px' }}>
+                                                    Crear Viable: {ciclosViables} ciclos de ${cuotaViable.toLocaleString(undefined, {maximumFractionDigits:2})}
+                                                </button>
+                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainRemove, width: '100%', background: 'transparent', border: '1px solid #dc3545', color: '#dc3545', fontSize: '13px', padding: '12px' }}>
+                                                    Forzar: {cics} ciclos de ${cuota.toLocaleString(undefined, {maximumFractionDigits:2})} (Arriesgado)
+                                                </button>
+                                            </div>
+                                        );
+                                    } else if (cuota > sobranteCiclo && sobranteCiclo <= 0) {
+                                        return (
+                                            <div style={{ background: '#fce8e6', border: '1px solid #dc3545', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
+                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#dc3545', fontWeight: 'bold' }}>🚨 No tienes dinero libre este ciclo.</p>
+                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainRemove, width: '100%', fontSize: '13px' }}>Forzar de todos modos</button>
+                                            </div>
+                                        )
+                                    } else {
+                                        return (
+                                            <div style={{ background: '#e6f4ea', border: '1px solid #28a745', padding: '15px', borderRadius: '15px', marginTop: '10px', textAlign: 'center' }}>
+                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#28a745', fontWeight: 'bold' }}>✅ ¡Es viable! Pagarás ${cuota.toLocaleString(undefined, {maximumFractionDigits:2})} por ciclo.</p>
+                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainAdd, width: '100%', background: '#e83e8c' }}>Crear Micro-Reto</button>
+                                            </div>
+                                        );
+                                    }
+                                }
+                                return <button style={{ ...btnMainAdd, width: '100%', marginTop: '10px', background: '#e1e5ee', color: '#a4b0be', cursor: 'not-allowed' }}>Ingresa los datos para evaluar</button>;
+                            })()}
+                        </>
+                    )}
                 </div>
             )}
 
@@ -854,9 +968,8 @@ const Dashboard = () => {
             
             <BovedaFullScreen isOpen={isBovedaFullScreenOpen} onClose={() => setIsBovedaFullScreenOpen(false)} saldoBoveda={boveda} saldoActual={saldoActual} saldoCajaFuerte={cajaFuerte} pinSeguridad={pinSeguridad} onTransaction={handleBovedaTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} cicloMaestro={cicloMaestro} onDeleteCajon={borrarCajon} />
             
-            <CajaFuerteFullScreen isOpen={isCajaFuerteFullScreenOpen} onClose={() => setIsCajaFuerteFullScreenOpen(false)} saldoCajaFuerte={cajaFuerte} saldoActual={saldoActual} saldoBoveda={boveda} pinSeguridad={pinSeguridad} onTransaction={handleCajaFuerteTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} ordenCajones={ordenCajones} completarMeta={completarReto} borrarMeta={borrarCajon} />
+            <CajaFuerteFullScreen isOpen={isCajaFuerteFullScreenOpen} onClose={() => setIsCajaFuerteFullScreenOpen(false)} saldoCajaFuerte={cajaFuerte} saldoActual={saldoActual} saldoBoveda={boveda} pinSeguridad={pinSeguridad} onTransaction={handleCajaFuerteTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} ordenCajones={ordenCajones} completarMeta={completarReto} borrarMeta={borrarCajon} handleManualMeta={handleManualReto} />
             
-            {/* AQUÍ SE PASA EL EVENTOSCALENDARIO PARA QUE NO DE ERROR EL FILTER */}
             <RetosFullScreen isOpen={isRetosFullScreenOpen} onClose={() => setIsRetosFullScreenOpen(false)} cajones={cajones} ordenCajones={ordenCajones} historial={historial} totalAcumulado={totalAcumuladoRetos} completarReto={completarReto} borrarReto={borrarCajon} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} />
 
             <div className="profile-sidebar" style={{ ...profileMenuSidebar, transform: isProfileOpen ? 'translateX(0)' : 'translateX(100%)' }}>
@@ -914,9 +1027,18 @@ const Dashboard = () => {
 
             <main className="main-content" style={mainContentStyle}>
                 <div style={mainContainerMaxWidth}>
+                    
+                    {/* 👇 AQUÍ LE DIMOS EL TOQUE PREMIUM AL TÍTULO 👇 */}
                     <header style={headerStyle}>
-                        <div><h1 className="text-title" style={{ margin: 0, fontSize: '32px', color: '#2f3542' }}>Dashboard 📊</h1><p style={{ margin: '5px 0 0 0', color: '#747d8c', fontSize:'15px' }}>Todo tu dinero en automático.</p></div>
-                        <div style={profileTriggerStyle} onClick={() => setIsProfileOpen(true)}><div style={avatarSmallStyle}>{userName.charAt(0).toUpperCase()}</div></div>
+                        <div>
+                            <h1 className="text-title" style={{ margin: 0, fontSize: '42px', fontWeight: '900', background: 'linear-gradient(135deg, #1e242b 0%, #007bff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1.5px' }}>
+                                Dashboard
+                            </h1>
+                            <p style={{ margin: '5px 0 0 0', color: '#747d8c', fontSize:'15px', fontWeight: '500' }}>Todo tu dinero en automático.</p>
+                        </div>
+                        <div style={profileTriggerStyle} onClick={() => setIsProfileOpen(true)}>
+                            <div style={avatarSmallStyle}>{userName.charAt(0).toUpperCase()}</div>
+                        </div>
                     </header>
 
                     <div style={mainCardStyle}>
@@ -933,6 +1055,18 @@ const Dashboard = () => {
                         <div style={statCardStyle}><div style={{ display: 'flex', gap: '8px', color: '#28a745', marginBottom: '10px', fontWeight: 'bold' }}><FaArrowUp /> Ingresos Estimados ({cicloMaestro})</div><h3 style={{ margin: 0, fontSize: '26px' }}>${totalIngresosCiclo.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3></div>
                         <div style={statCardStyle}><div style={{ display: 'flex', gap: '8px', color: '#007bff', marginBottom: '10px', fontWeight: 'bold' }}><FaArrowDown /> Gastos Meta ({cicloMaestro})</div><h3 style={{ margin: 0, fontSize: '26px' }}>${totalAsignadoBase.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3></div>
                     </div>
+
+                    {/* GLOBITO AMARILLO DE SOBRANTE */}
+                    {showSobranteAlert && sobranteCiclo > 0 && (
+                        <div style={{...alertSuccessStyle, background: '#fff9e6', borderLeft: '8px solid #ffc107', color: '#856404', position: 'relative'}}>
+                            <FaTimes onClick={() => setShowSobranteAlert(false)} style={{ position: 'absolute', top: '15px', right: '15px', cursor: 'pointer', color: '#856404' }} title="Cerrar aviso" />
+                            <FaLightbulb style={{ fontSize: '24px', marginRight: '15px', color: '#ffc107', flexShrink: 0 }} />
+                            <div>
+                                <strong style={{ fontSize: '16px' }}>¡Sobrante proyectado!</strong>
+                                <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>Si cumples tus metas, te sobrarán <b>${sobranteCiclo.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</b> en este ciclo.</p>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex-col-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', marginBottom: '20px' }}>
                         <h3 style={{ margin: 0, fontSize: '22px' }}>Llenado en Cascada</h3>
@@ -985,7 +1119,6 @@ const Dashboard = () => {
                                         <div style={{ ...progressFill, width: `${isAsegurado ? 100 : cajon.porcentaje}%`, backgroundColor: isFull ? '#28a745' : isEmpty ? '#dc3545' : (cajon.nombre==='Deuda'?'#dc3545':'#ffc107') }}></div>
                                     </div>
                                     
-                                    {/* 💡 ACORDEÓN DE PROGRESO */}
                                     { (cajon.nombre === 'Fondo de Emergencia' || cajon.nombre.startsWith('Meta:') || cajon.nombre.startsWith('Reto:')) && (
                                         <div style={{ marginTop: '15px', background: '#f8f9fa', borderRadius: '10px', border: '1px solid #e1e5ee', overflow: 'hidden' }}>
                                             <div onClick={() => toggleCajon(cajon.nombre)} style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s', background: expandedCajones[cajon.nombre] ? '#eef3ff' : 'transparent' }}>
@@ -1134,7 +1267,7 @@ const headerStyle = { display: 'flex', justifyContent: 'space-between', alignIte
 const mainCardStyle = { background: 'linear-gradient(135deg, #2b323c 0%, #1e242b 100%)', color: 'white', padding: '45px', borderRadius: '35px', boxShadow: '0 20px 45px rgba(0,0,0,0.15)', marginBottom: '40px' };
 const btnMainAdd = { flex: 1, backgroundColor: '#10ac84', color: 'white', border: 'none', borderRadius: '18px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' };
 const btnMainRemove = { flex: 1, backgroundColor: '#ee5253', color: 'white', border: 'none', borderRadius: '18px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' };
-const alertSuccessStyle = { display: 'flex', alignItems: 'center', backgroundColor: '#fff3cd', padding: '20px 25px', borderRadius: '20px', marginBottom: '40px', borderLeft: '8px solid #ffc107', transition: 'opacity 0.5s ease-out' };
+const alertSuccessStyle = { display: 'flex', alignItems: 'center', padding: '20px 25px', borderRadius: '20px', marginBottom: '40px', transition: 'opacity 0.5s ease-out' };
 const statsGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '45px' };
 const statCardStyle = { backgroundColor: '#fff', padding: '30px', borderRadius: '25px', border: '1px solid #e1e5ee' };
 const editPriorityBtn = { padding: '10px 18px', borderRadius: '15px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '8px' };

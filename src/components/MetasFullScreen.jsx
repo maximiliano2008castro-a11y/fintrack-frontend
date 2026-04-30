@@ -43,7 +43,7 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
 
     const irAtras = () => {
         if (vistaActual === 'menu') onClose();
-        else { setVistaActual('menu'); setSugerenciaUsada(false); setResultadoIA(null); setResultadoReto(null); setResultadoNegocio(null); setResultadoMaquina(null); }
+        else { setVistaActual('menu'); setSugerenciaUsada(false); setResultadoIA(null); setResultadoReto(null); setResultadoNegocio(null); setResultadoMaquina(null); setFormReto({ nombre: '', monto: '', ciclosManual: '' }); }
     };
 
     const ajustarAlCicloActual = (montoMensual) => {
@@ -129,18 +129,64 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
         setResultadoMaquina({ futuro: capitalAcumulado, aportado: aportadoBolsillo, interesGanado: capitalAcumulado - aportadoBolsillo, pensionMensual: (capitalAcumulado * 0.04) / 12, anosFaltantes });
     };
 
+    // 💡 LÓGICA DE MICRO-RETOS (AUTOMÁTICA Y MANUAL)
     const generarReto = () => {
-        const montoObj = parseFloat(formReto.monto); const ciclosManuales = parseInt(formReto.ciclosManual);
+        const montoObj = parseFloat(formReto.monto); 
+        const ciclosManuales = parseInt(formReto.ciclosManual);
+        
         if (!formReto.nombre || !montoObj || montoObj <= 0) return alert("Llena el nombre y el precio.");
-        const presupuestoSanoCiclo = ingresosMensuales > 0 ? (ajustarAlCicloActual(ingresosMensuales) * 0.10) : 500;
+
+        const ingresosPorCiclo = ajustarAlCicloActual(ingresosMensuales);
+        const gastosPorCiclo = (parseFloat(gastosFijosBase) || 0) + (parseFloat(gastosVariablesBase) || 0);
+        const sobranteRealCiclo = ingresosPorCiclo - gastosPorCiclo;
+
+        // 1️⃣ MODO MANUAL (El usuario escribió un número de ciclos)
         if (ciclosManuales && ciclosManuales > 0) {
+            if (ciclosManuales > 24) return alert("🚨 Un micro-reto no puede durar más de 24 ciclos (aprox. 2 años). Usa la herramienta de 'Ahorro Inteligente' en su lugar.");
+
             const cuotaCiclo = montoObj / ciclosManuales;
-            setResultadoReto({ tipo: cuotaCiclo <= presupuestoSanoCiclo ? 'manual_sano' : 'manual_peligro', ciclos: ciclosManuales, cuota: cuotaCiclo, limiteSano: presupuestoSanoCiclo });
-        } else {
+
+            if (cuotaCiclo > sobranteRealCiclo && sobranteRealCiclo > 0) {
+                const ciclosViables = Math.ceil(montoObj / sobranteRealCiclo);
+                const cuotaViable = montoObj / ciclosViables;
+                setResultadoReto({ 
+                    tipo: 'manual_peligro', ciclosOriginales: ciclosManuales, cuotaOriginal: cuotaCiclo, 
+                    limiteSano: sobranteRealCiclo, ciclosViables: ciclosViables, cuotaViable: cuotaViable
+                });
+            } else if (cuotaCiclo > sobranteRealCiclo && sobranteRealCiclo <= 0) {
+                setResultadoReto({ tipo: 'imposible', ciclosOriginales: ciclosManuales, cuotaOriginal: cuotaCiclo });
+            } else {
+                setResultadoReto({ tipo: 'manual_sano', ciclos: ciclosManuales, cuota: cuotaCiclo });
+            }
+        } 
+        // 2️⃣ MODO AUTOMÁTICO (El usuario lo dejó en blanco para que la app decida)
+        else {
+            if (sobranteRealCiclo <= 0) {
+                return alert("🚨 No tienes dinero libre este ciclo. Ajusta tus gastos o escribe los ciclos manualmente para forzar la meta bajo tu riesgo.");
+            }
+
             const cuota4Ciclos = montoObj / 4;
-            if (cuota4Ciclos <= presupuestoSanoCiclo) setResultadoReto({ tipo: 'ideal', ciclos: 4, cuota: cuota4Ciclos });
-            else { const ciclosReales = Math.ceil(montoObj / presupuestoSanoCiclo); setResultadoReto({ tipo: 'ajustado', ciclos: ciclosReales, cuota: montoObj / ciclosReales }); }
+            
+            // Intenta hacerlo en 4 ciclos como objetivo ideal
+            if (cuota4Ciclos <= sobranteRealCiclo) {
+                setResultadoReto({ tipo: 'auto_ideal', ciclos: 4, cuota: cuota4Ciclos });
+            } 
+            // Si en 4 ciclos no alcanza, calcula en cuántos sí alcanza exactamente
+            else {
+                const ciclosReales = Math.ceil(montoObj / sobranteRealCiclo);
+                
+                if (ciclosReales > 24) {
+                    return alert(`🚨 Para pagar esto con tu sobrante actual ($${sobranteRealCiclo.toLocaleString(undefined, {maximumFractionDigits:2})}) tardarías ${ciclosReales} ciclos. ¡Es demasiado grande para un Micro-Reto! Mejor usa 'Ahorro Inteligente'.`);
+                }
+
+                setResultadoReto({ tipo: 'auto_ajustado', ciclos: ciclosReales, cuota: montoObj / ciclosReales });
+            }
         }
+    };
+
+    const crearRetoCajon = (cuotaFinal, ciclosFinales) => {
+        onAddCajon(`Reto: ${formReto.nombre} (${ciclosFinales} ciclos)`, cuotaFinal, cicloMaestro); 
+        onClose();
     };
 
     const renderMenu = () => (
@@ -180,7 +226,6 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
                     <div key={idx} style={optionCardStyle}>
                         <div style={{ flex: 1 }}><h3 style={{ margin: '0 0 5px 0' }}>{opc.titulo}</h3><p style={{ margin: 0, color: '#747d8c', fontSize: '14px' }}>{opc.desc}</p></div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {/* 🔴 AHORA SE GUARDA COMO UNA META CON EL TOTAL INCLUIDO EN EL NOMBRE */}
                             <button onClick={() => { onAddCajon(`Meta: ${formInteligente.nombreMeta} (Total: ${Math.round(resultadoIA.totalExacto)})`, opc.monto, opc.frecuencia); onClose(); }} style={btnCreateCajon}><FaPlus /> Enviar a mis Metas</button>
                         </div>
                     </div>
@@ -215,7 +260,6 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{fontWeight: 'bold', fontSize: '20px', color: '#a4b0be'}}>$</span><input type="number" min="0" onKeyDown={blockInvalidChars} value={aporteEmergencia} onChange={e => { setAporteEmergencia(e.target.value); setSugerenciaEmergenciaUsada(false); }} style={{...inputStyle, marginBottom: 0, flex: 1}} /></div>
                     {mensajeTiempo && <div style={{ marginTop: '10px', color: '#2f3542', fontSize: '15px', background: '#f1f2f6', padding: '12px', borderRadius: '10px', border: '1px solid #dfe6e9' }}><b>{mensajeTiempo}</b></div>}
                     
-                    {/* 💡 AQUÍ SE AÑADIÓ totalFondo COMO 4TO PARÁMETRO PARA LA BD */}
                     <button onClick={() => { if(!aporteEmergencia || aporteEmergencia<=0) return alert('Ingresa un monto.'); onAddCajon('Fondo de Emergencia', parseFloat(aporteEmergencia), cicloMaestro, totalFondo); onClose(); }} style={{ ...actionBtnStyle, background: '#28a745', marginTop: '25px' }}><FaPlus /> Crear Cajón</button>
                 </div>
             </div>
@@ -268,18 +312,81 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
 
     const renderRetos = () => (
         <div style={formContainerStyle}>
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}><FaGamepad style={{ fontSize: '40px', color: '#e83e8c', marginBottom: '10px' }}/><h2 style={{ margin: '0 0 10px 0', color: '#e83e8c' }}>Micro-Retos</h2></div>
-            <label style={labelStyle}>¿Qué quieres comprar o hacer?</label><input type="text" placeholder="Ej. Zapatos, Concierto" value={formReto.nombre} onChange={e=>setFormReto({...formReto, nombre: e.target.value})} style={inputStyle} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div><label style={labelStyle}>Precio Total ($)</label><input type="number" min="0" onKeyDown={blockInvalidChars} value={formReto.monto} onChange={e=>setFormReto({...formReto, monto: e.target.value})} style={inputStyle} /></div>
-                <div><label style={{...labelStyle, color: '#e83e8c'}}>¿En cuántos ciclos?</label><input type="number" min="1" onKeyDown={blockInvalidChars} placeholder="Auto" value={formReto.ciclosManual} onChange={e=>setFormReto({...formReto, ciclosManual: e.target.value})} style={{...inputStyle, borderColor: formReto.ciclosManual ? '#e83e8c' : '#dfe6e9'}} /></div>
+            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                <FaGamepad style={{ fontSize: '40px', color: '#e83e8c', marginBottom: '10px' }}/>
+                <h2 style={{ margin: '0 0 10px 0', color: '#e83e8c' }}>Micro-Retos</h2>
+                <p style={{ margin: 0, color: '#747d8c', fontSize: '15px' }}>Divide el costo total entre los ciclos que necesites. (Deja en blanco para Automático).</p>
             </div>
-            <button onClick={generarReto} style={{...actionBtnStyle, background: '#e83e8c', marginTop: '10px'}}><FaMagic /> Calcular Reto ({cicloMaestro})</button>
+            
+            <label style={labelStyle}>¿Qué capricho te vas a dar?</label>
+            <input type="text" placeholder="Ej. Zapatos, Concierto" value={formReto.nombre} onChange={e=>setFormReto({...formReto, nombre: e.target.value})} style={inputStyle} />
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div>
+                    <label style={labelStyle}>Precio Total ($)</label>
+                    <input type="number" min="0" onKeyDown={blockInvalidChars} value={formReto.monto} onChange={e=>setFormReto({...formReto, monto: e.target.value})} style={inputStyle} />
+                </div>
+                <div>
+                    <label style={{...labelStyle, color: '#e83e8c'}}>¿En cuántos ciclos?</label>
+                    <input type="number" min="1" onKeyDown={blockInvalidChars} placeholder="Auto" value={formReto.ciclosManual} onChange={e=>setFormReto({...formReto, ciclosManual: e.target.value})} style={{...inputStyle, borderColor: formReto.ciclosManual ? '#e83e8c' : '#dfe6e9'}} />
+                </div>
+            </div>
+            
+            <button onClick={generarReto} style={{...actionBtnStyle, background: '#e83e8c', marginTop: '10px'}}><FaMagic /> Evaluar Viabilidad</button>
+            
             {resultadoReto && (
-                <div style={{...resultBoxStyle, borderColor: resultadoReto.tipo === 'manual_peligro' ? '#dc3545' : '#e83e8c', background: resultadoReto.tipo === 'manual_peligro' ? '#ffebee' : '#fce3ed', marginTop: '30px'}}>
-                    <h3 style={{margin: '0 0 10px 0', color: resultadoReto.tipo === 'manual_peligro' ? '#dc3545' : '#e83e8c'}}>{resultadoReto.tipo === 'manual_peligro' ? '¡Reto muy agresivo!' : '¡Súper viable!'}</h3>
-                    <p style={{color: '#2f3542', fontSize: '15px'}}>Para lograrlo en {resultadoReto.ciclos} ciclos requieres <b>${resultadoReto.cuota.toFixed(2)}</b> por ciclo.</p>
-                    <button onClick={() => { onAddCajon(`Reto: ${formReto.nombre} (${resultadoReto.ciclos} ciclos)`, resultadoReto.cuota, cicloMaestro); onClose(); }} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: resultadoReto.tipo === 'manual_peligro' ? '#dc3545' : '#e83e8c'}}><FaPlus /> Crear Cajón de Reto</button>
+                <div style={{...resultBoxStyle, borderColor: (resultadoReto.tipo === 'manual_peligro' || resultadoReto.tipo === 'imposible') ? '#dc3545' : '#e83e8c', background: (resultadoReto.tipo === 'manual_peligro' || resultadoReto.tipo === 'imposible') ? '#fce8e6' : '#fce3ed', marginTop: '30px'}}>
+                    
+                    {resultadoReto.tipo === 'manual_sano' && (
+                        <>
+                            <h3 style={{margin: '0 0 10px 0', color: '#e83e8c'}}>¡Súper viable! ✅</h3>
+                            <p style={{color: '#2f3542', fontSize: '15px'}}>Pagarás <b>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo durante {resultadoReto.ciclos} ciclos.</p>
+                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: '#e83e8c'}}><FaPlus /> Crear Cajón de Reto</button>
+                        </>
+                    )}
+
+                    {resultadoReto.tipo === 'auto_ideal' && (
+                        <>
+                            <h3 style={{margin: '0 0 10px 0', color: '#e83e8c'}}>¡Súper viable! ✅</h3>
+                            <p style={{color: '#2f3542', fontSize: '15px'}}>Lo resolvimos en <b>4 ciclos rápidos</b> pagando <b>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo.</p>
+                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: '#e83e8c'}}><FaPlus /> Crear Cajón de Reto</button>
+                        </>
+                    )}
+
+                    {resultadoReto.tipo === 'auto_ajustado' && (
+                        <>
+                            <h3 style={{margin: '0 0 10px 0', color: '#e83e8c'}}>¡Ajustado a tu bolsillo! 🎯</h3>
+                            <p style={{color: '#2f3542', fontSize: '15px'}}>Para que no te quedes en ceros, la app lo calculó en <b>{resultadoReto.ciclos} ciclos</b> pagando <b>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo.</p>
+                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: '#e83e8c'}}><FaPlus /> Crear Cajón de Reto</button>
+                        </>
+                    )}
+
+                    {resultadoReto.tipo === 'manual_peligro' && (
+                        <>
+                            <h3 style={{margin: '0 0 10px 0', color: '#dc3545'}}>¡Reto muy agresivo! 🚨</h3>
+                            <p style={{color: '#2f3542', fontSize: '14px', marginBottom: '15px'}}>Para lograrlo en {resultadoReto.ciclosOriginales} ciclos necesitas <b>${resultadoReto.cuotaOriginal.toLocaleString(undefined, {maximumFractionDigits:2})}</b>, pero solo te sobran <b>${resultadoReto.limiteSano.toLocaleString(undefined, {maximumFractionDigits:2})}</b> libres en tu cascada.</p>
+                            
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                                <button onClick={() => crearRetoCajon(resultadoReto.cuotaViable, resultadoReto.ciclosViables)} style={{...btnCreateCajon, width: '100%', background: '#28a745'}}>
+                                    <FaCheckCircle /> Plan Viable: {resultadoReto.ciclosViables} ciclos de ${resultadoReto.cuotaViable.toLocaleString(undefined, {maximumFractionDigits:2})}
+                                </button>
+                                <button onClick={() => crearRetoCajon(resultadoReto.cuotaOriginal, resultadoReto.ciclosOriginales)} style={{...btnCreateCajon, width: '100%', background: 'transparent', color: '#dc3545', border: '1px solid #dc3545'}}>
+                                    Forzar {resultadoReto.ciclosOriginales} ciclos de ${resultadoReto.cuotaOriginal.toLocaleString(undefined, {maximumFractionDigits:2})}
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {resultadoReto.tipo === 'imposible' && (
+                        <>
+                            <h3 style={{margin: '0 0 10px 0', color: '#dc3545'}}>Sin dinero libre 🚨</h3>
+                            <p style={{color: '#2f3542', fontSize: '14px', marginBottom: '15px'}}>Tus gastos fijos y variables actualmente absorben todo tu ingreso. No tienes sobrante para este capricho a menos que lo fuerces.</p>
+                            <button onClick={() => crearRetoCajon(resultadoReto.cuotaOriginal, resultadoReto.ciclosOriginales)} style={{...btnCreateCajon, width: '100%', background: 'transparent', color: '#dc3545', border: '1px solid #dc3545'}}>
+                                Forzar {resultadoReto.ciclosOriginales} ciclos de ${resultadoReto.cuotaOriginal.toLocaleString(undefined, {maximumFractionDigits:2})}
+                            </button>
+                        </>
+                    )}
+
                 </div>
             )}
         </div>

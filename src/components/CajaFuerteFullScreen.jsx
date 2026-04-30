@@ -4,7 +4,8 @@ import { FaArrowLeft, FaLock, FaPlus, FaMinus, FaHistory, FaBrain, FaCheckCircle
 const CajaFuerteFullScreen = ({ 
     isOpen, onClose, saldoCajaFuerte, saldoActual, pinSeguridad, 
     onTransaction, historial, cajones, ordenCajones, 
-    completarMeta, borrarMeta, eventosCalendario, onSaveEvent, onDeleteEvent, mesActual, anioActual 
+    completarMeta, borrarMeta, eventosCalendario, onSaveEvent, onDeleteEvent, mesActual, anioActual,
+    handleManualMeta // 💡 Función importada desde el Dashboard
 }) => {
     const [montoIngreso, setMontoIngreso] = useState('');
     const [montoRetiro, setMontoRetiro] = useState('');
@@ -23,17 +24,24 @@ const CajaFuerteFullScreen = ({
     const granTotal = saldoCajaFuerte + totalAcumuladoMetas;
     
     // Filtramos historial y eventos solo para Metas y Caja Fuerte
-    const historialCaja = historial.filter(h => h.nombre.includes('Caja Fuerte') || h.nombre.includes('Ahorro') || h.nombre.startsWith('Meta:') || h.nombre.includes('Abono') || h.nombre.includes('Retiro de Meta'));
+    const historialCaja = historial.filter(h => h.nombre.includes('Caja Fuerte') || h.nombre.includes('Ahorro') || h.nombre.startsWith('Meta:') || h.nombre.includes('Abono') || h.nombre.includes('Retiro de Meta') || h.nombre.includes('Retiro de Meta'));
     const localEventos = eventosCalendario ? eventosCalendario.filter(e => e.categoria === 'Meta') : [];
 
     const preventMinus = (e) => { if (['-', 'e', 'E', '+'].includes(e.key)) e.preventDefault(); };
 
-    // 💡 LÓGICA DE CAJA FUERTE LIBRE (PANEL IZQUIERDO)
+    // 💡 LÓGICA DE CAJA FUERTE LIBRE: PREGUNTA POR DINERO EXTERNO
     const handleAdd = () => {
         const val = parseFloat(montoIngreso);
         if (!val || val <= 0) return alert("Monto inválido.");
-        if (val > saldoActual) return alert("No tienes saldo suficiente en tu dinero Libre.");
-        onTransaction('add', val, false);
+        
+        let esExterno = false;
+        if (val > saldoActual) {
+            const confirmExterno = window.confirm(`❌ No tienes $${val} en tu Cascada disponible ($${saldoActual.toLocaleString()}).\n\n¿Tienes este dinero en otra parte (otro banco, efectivo extra) y deseas guardarlo directamente en tu Caja Fuerte sin afectar tu Cascada?`);
+            if (!confirmExterno) return;
+            esExterno = true;
+        }
+
+        onTransaction('add', val, esExterno);
         setMontoIngreso('');
     };
 
@@ -44,25 +52,6 @@ const CajaFuerteFullScreen = ({
         if (window.prompt("🔒 Ingresa NIP de Seguridad para retirar:") !== pinSeguridad) return alert("❌ NIP Incorrecto.");
         onTransaction('withdraw', val, false);
         setMontoRetiro('');
-    };
-
-    // 💡 NUEVO: LÓGICA MANUAL PARA METAS INDIVIDUALES (PANEL DERECHO)
-    const handleManualMeta = (metaName, action) => {
-        const monto = parseFloat(window.prompt(`¿Cuánto deseas ${action === 'add' ? 'ingresar a' : 'retirar de'} ${metaName.replace(/ \(Total: [\d.]+\)/, '').replace('Meta: ', '')}?`));
-        if (!monto || isNaN(monto) || monto <= 0) return;
-        
-        if (action === 'add') {
-            if (monto > saldoActual) return alert('❌ No tienes saldo físico suficiente en tu cascada.');
-            // Llamamos a onTransaction para que el Dashboard reste el dinero de tu saldo libre y sume a la meta
-            // *NOTA: Para que onTransaction modifique un cajón específico, necesitamos decirle cuál. 
-            // Como onTransaction en Dashboard asume CajaFuerte libre, usaremos un hack enviando un evento que Dashboard lea en el siguiente render,
-            // pero lo más limpio es enviarlo como un tipo especial 'add_meta' si tuviéramos acceso a modificar Dashboard.
-            // PERO, como pediste no modificar Dashboard para esto, vamos a disparar una alerta de que esta función requiere
-            // que también agreguemos 'handleManualReto' en las props de CajaFuerte. 
-            alert('⚠️ Para ingresar directamente a una Meta, usa los botones desde el Dashboard Principal en el acordeón de "Detalle por Cajón". (Esta vista de Caja Fuerte es de lectura para las Metas).');
-        } else {
-            alert('⚠️ Para retirar directamente de una Meta, usa los botones desde el Dashboard Principal en el acordeón de "Detalle por Cajón".');
-        }
     };
 
     // 💡 LÓGICA DEL CALENDARIO DE METAS
@@ -217,12 +206,8 @@ const CajaFuerteFullScreen = ({
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', flexWrap: 'wrap' }}>
                                                     <span style={{ fontSize: '15px', color: '#747d8c', width: '100%', marginBottom: '10px' }}>Guardado: <b style={{fontSize:'18px', color:'#2f3542'}}>${acumulado.toLocaleString()}</b></span>
                                                     
-                                                    {/* 💡 AQUÍ SE INCLUYEN LOS BOTONES MANUELES Y EL BASURERO SEPARADO */}
+                                                    {/* 💡 BOTONES CONECTADOS */}
                                                     <div className="btn-group-mobile" style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                        
-                                                        {/* Botones de control manual de dinero que querías (Deshabilitados visualmente para evitar errores en Dashboard) */}
-                                                        {/* NOTA: Para activarlos realmente necesitas pasar handleManualReto desde Dashboard, 
-                                                            pero como pediste no tocar Dashboard, he puesto un alert arriba explicándolo. */}
                                                         <div style={{ display: 'flex', gap: '5px' }}>
                                                             <button onClick={() => handleManualMeta(meta, 'add')} style={{...btnSmallAccion, color: '#28a745', background: '#e6f4ea'}} title="Abonar Manualmente">+ Ingresar Extra</button>
                                                             <button onClick={() => handleManualMeta(meta, 'remove')} style={{...btnSmallAccion, color: '#dc3545', background: '#ffebee'}} title="Retirar Manualmente">- Retirar Fondos</button>
