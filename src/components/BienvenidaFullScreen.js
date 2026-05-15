@@ -1,312 +1,173 @@
 import React, { useState } from 'react';
-import { FaArrowLeft, FaShieldAlt, FaArrowUp, FaArrowDown, FaLock, FaCalendarAlt, FaHistory, FaBell, FaTimes, FaTrash, FaWallet } from 'react-icons/fa';
-import GuiaTutorial from './GuiaTutorial';
+import { FaArrowRight, FaUser, FaLock, FaWallet, FaCheckCircle, FaCalendarAlt, FaMoneyBillWave } from 'react-icons/fa';
 
-// 💡 Se agregó "isDarkMode" a los props
-const BovedaFullScreen = ({ isOpen, onClose, saldoBoveda, saldoActual, saldoCajaFuerte, pinSeguridad, onTransaction, historial, eventosCalendario, onSaveEvent, onDeleteEvent, mesActual, anioActual, cajones, cicloMaestro, onDeleteCajon, isDarkMode }) => {
-    const [selectedDay, setSelectedDay] = useState(null);
-    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-    const [eventForm, setEventForm] = useState({ nombre: '', monto: '', tipo: 'pago', frecuencia: 'Único' });
+const BienvenidaFullScreen = ({ onFinish, isDarkMode }) => {
+    const [paso, setPaso] = useState(1);
 
-    if (!isOpen) return null;
-
-    const hoy = new Date();
-
-    const localHistorial = historial.filter(h => h.nombre.includes('Emergencia') || h.nombre.includes('Bóveda'));
-    const localEventos = eventosCalendario.filter(e => e.categoria === 'Boveda');
-
-    const granTotal = (saldoActual || 0) + (saldoCajaFuerte || 0) + (saldoBoveda || 0);
-
-    // 💡 LÓGICA DE META Y PROGRESO DEL FONDO DE EMERGENCIA
-    const fondoData = cajones && cajones['Fondo de Emergencia'] ? cajones['Fondo de Emergencia'] : null;
+    // Estado del formulario
+    const [nombre, setNombre] = useState('');
+    const [fechaNacimiento, setFechaNacimiento] = useState('');
+    const [pin, setPin] = useState('');
+    const [confirmPin, setConfirmPin] = useState('');
     
-    // Aquí lee el Gran Total (Ej. 12,000) que acabamos de agregar desde Mis Metas
-    const metaTotal = fondoData?.metaTotal || 0; 
-    
-    // Aquí lee lo que aportas cada ciclo (Ej. 3,000)
-    const cuotaCiclo = fondoData?.monto || 0;
-    
-    const porcentajeProgreso = metaTotal > 0 ? Math.min((saldoBoveda / metaTotal) * 100, 100) : 0;
-    
-    let ciclosRestantes = 0;
-    if (metaTotal > 0 && cuotaCiclo > 0 && saldoBoveda < metaTotal) {
-        ciclosRestantes = Math.ceil((metaTotal - saldoBoveda) / cuotaCiclo);
-    }
+    const [saldo, setSaldo] = useState('');
+    const [ciclo, setCiclo] = useState('Mensual');
+    const [diaInicio, setDiaInicio] = useState('1');
+    const [ingresoBase, setIngresoBase] = useState('');
 
-    const handleAdd = () => {
-        const val = window.prompt(`🛡️ INGRESAR A BÓVEDA INTOCABLE\n\nDinero disponible en tu Cascada: $${saldoActual.toLocaleString()}\n¿Cuánto deseas blindar en la Bóveda?`);
-        if (!val) return;
-        const monto = parseFloat(val);
-        if (isNaN(monto) || monto <= 0) return alert("❌ Monto inválido.");
-        
-        let esExterno = false;
-        if (monto > saldoActual) {
-            const confirmExterno = window.confirm(`❌ No tienes esa cantidad en tu Cascada disponible ($${saldoActual.toLocaleString()}).\n\n¿Tienes este dinero en otra parte (otro banco, efectivo extra) y deseas blindarlo directamente en tu Bóveda sin afectar tu Cascada?`);
-            if (!confirmExterno) return;
-            esExterno = true;
-        }
+    const blockInvalidChars = (e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault();
 
-        if (window.prompt("🔒 NIP DE SEGURIDAD\nIngresa tu NIP de 4 dígitos para autorizar:") !== pinSeguridad) return alert("❌ NIP Incorrecto.");
-        onTransaction('add', monto, esExterno);
-    };
-
-    const handleWithdraw = () => {
-        const val = window.prompt(`🚨 RETIRO DE EMERGENCIA\n\nDinero protegido: $${saldoBoveda.toLocaleString()}\n¿Cuánto necesitas retirar para esta crisis?`);
-        if (!val) return;
-        const monto = parseFloat(val);
-        if (isNaN(monto) || monto <= 0) return alert("❌ Monto inválido.");
-        if (monto > saldoBoveda) return alert("❌ No tienes tantos fondos en la Bóveda.");
-        if (window.prompt("🔒 NIP DE SEGURIDAD\nIngresa tu NIP de 4 dígitos para autorizar el retiro vital:") !== pinSeguridad) return alert("❌ NIP Incorrecto.");
-        onTransaction('withdraw', monto);
-    };
-
-    // 💡 BOTÓN PARA ELIMINAR EL FONDO Y REGRESAR DINERO
-    const handleEliminarFondo = () => {
-        if (!fondoData && saldoBoveda === 0) return alert("No tienes un Fondo de Emergencia activo para eliminar.");
-        if (window.prompt(`🔒 NIP DE SEGURIDAD\nEstás a punto de eliminar tu Fondo de Emergencia. Ingresa tu NIP para continuar:`) !== pinSeguridad) return alert("❌ NIP Incorrecto.");
-        
-        if (window.confirm(`🚨 ADVERTENCIA\n\n¿Estás completamente seguro de eliminar tu Fondo de Emergencia?\nTodo el dinero blindado ($${saldoBoveda.toLocaleString()}) será devuelto a tu Cascada principal.`)) {
-            if (onDeleteCajon) {
-                onDeleteCajon('Fondo de Emergencia', 0, true);
-            }
-            onClose();
+    const siguientePaso = () => {
+        if (paso === 1) {
+            if (!nombre.trim() || !fechaNacimiento) return alert("Por favor ingresa tu nombre y fecha de nacimiento.");
+            setPaso(2);
+        } else if (paso === 2) {
+            if (pin.length !== 4 || confirmPin.length !== 4) return alert("El NIP debe ser exactamente de 4 dígitos.");
+            if (pin !== confirmPin) return alert("Los NIPs no coinciden.");
+            setPaso(3);
+        } else if (paso === 3) {
+            if (!saldo || saldo < 0) return alert("Ingresa tu saldo actual (puede ser 0).");
+            if (!ingresoBase || ingresoBase <= 0) return alert("Ingresa un ingreso base estimado.");
+            finalizar();
         }
     };
 
-    const checkEventosDia = (dia) => {
-        if (!dia) return { tienePago: false, tieneGasto: false };
-        const fechaVista = new Date(anioActual, mesActual, dia);
-        const planificados = localEventos.filter(ev => {
-            const mC = ev.mesCreacion !== undefined ? ev.mesCreacion : mesActual;
-            const aC = ev.anioCreacion !== undefined ? ev.anioCreacion : anioActual;
-            const fechaOrigen = new Date(aC, mC, ev.dia);
-            if (fechaVista < fechaOrigen) return false;
-            if (ev.frecuencia === 'Único') return fechaVista.toDateString() === fechaOrigen.toDateString();
-            if (ev.frecuencia === 'Semanal') return fechaVista.getDay() === fechaOrigen.getDay();
-            if (ev.frecuencia === 'Mensual') return fechaVista.getDate() === ev.dia;
-            if (ev.frecuencia === 'Anual') return fechaVista.getDate() === ev.dia && fechaVista.getMonth() === mC;
-            return false;
-        });
-        
-        const reales = localHistorial.filter(h => h.dia === dia && h.mes === mesActual && h.anio === anioActual);
-        const realesIn = reales.filter(r => /ingreso|blindaje|asegurado|reembolso/i.test(r.nombre));
-        const realesOut = reales.filter(r => /retiro|gastado/i.test(r.nombre));
-
-        return { 
-            tienePago: planificados.some(e => e.tipo === 'pago') || realesIn.length > 0, 
-            tieneGasto: planificados.some(e => e.tipo === 'gasto') || realesOut.length > 0 
+    const finalizar = () => {
+        // Creamos los 4 cajones administradores por defecto
+        const cajonesBase = {
+            'Deuda': { monto: 0, frecuencia: ciclo, acumulado: 0 },
+            'Gastos Fijos': { monto: 0, frecuencia: ciclo, acumulado: 0 },
+            'Gastos Variables': { monto: 0, frecuencia: ciclo, acumulado: 0 },
+            'Ahorro': { monto: 0, frecuencia: ciclo, acumulado: 0 }
         };
-    };
+        const ordenCajonesBase = ['Deuda', 'Gastos Fijos', 'Gastos Variables', 'Ahorro'];
+        const ingresosArray = [{ monto: parseFloat(ingresoBase), frecuencia: ciclo }];
 
-    const openEventModal = (dia) => { setSelectedDay(dia); setEventForm({ nombre: '', monto: '', tipo: 'pago', frecuencia: 'Único' }); setIsEventModalOpen(true); };
-    const handleSaveLocalEvent = () => {
-        if (!eventForm.nombre || !eventForm.monto) return alert("Llena los campos.");
-        onSaveEvent({ ...eventForm, monto: parseFloat(eventForm.monto), dia: selectedDay, categoria: 'Boveda' });
-        setIsEventModalOpen(false);
+        const datosCompletos = {
+            nombre: nombre.trim(),
+            fechaNacimiento,
+            pin,
+            saldo: parseFloat(saldo),
+            ciclo,
+            diaInicio,
+            ingresos: ingresosArray,
+            cajones: cajonesBase,
+            ordenCajones: ordenCajonesBase
+        };
+
+        onFinish(datosCompletos);
     };
 
     return (
         <div className={isDarkMode ? 'theme-dark' : 'theme-light'} style={fullScreenStyle}>
-            <style>{`
-                @media (max-width: 768px) {
-                    .boveda-content { padding: 20px !important; }
-                    .boveda-card { padding: 30px 20px !important; border-radius: 25px !important; }
-                    .boveda-balance { font-size: 45px !important; }
-                    .boveda-actions { flex-direction: column !important; gap: 15px !important; }
-                    .boveda-grid-bottom { grid-template-columns: 1fr !important; gap: 20px !important; }
-                    .boveda-btn { padding: 15px !important; font-size: 15px !important; }
-                }
-            `}</style>
-
-            {isEventModalOpen && (
-                <div style={overlayStyle}>
-                    <div style={modalCenterStyle}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <div style={{...badgeDayStyle, background: 'var(--success)'}}>Día {selectedDay} (Bóveda)</div>
-                            <FaTimes onClick={() => setIsEventModalOpen(false)} style={{ cursor: 'pointer', color: 'var(--text-light)', fontSize: '20px' }} />
-                        </div>
-                        <div style={typeSelectorGrid}>
-                            <button onClick={() => setEventForm({...eventForm, tipo: 'pago'})} style={{ ...typeBtn, border: eventForm.tipo === 'pago' ? '2px solid var(--success)' : '1px solid var(--border-color)', background: eventForm.tipo === 'pago' ? 'var(--success-light)' : 'var(--bg-secondary)', color: eventForm.tipo === 'pago' ? 'var(--success)' : 'var(--text-main)' }}>Aporte Previsto</button>
-                            <button onClick={() => setEventForm({...eventForm, tipo: 'gasto'})} style={{ ...typeBtn, border: eventForm.tipo === 'gasto' ? '2px solid var(--danger)' : '1px solid var(--border-color)', background: eventForm.tipo === 'gasto' ? 'var(--danger-light)' : 'var(--bg-secondary)', color: eventForm.tipo === 'gasto' ? 'var(--danger)' : 'var(--text-main)' }}>Retiro de Riesgo</button>
-                        </div>
-                        <input type="text" placeholder="Concepto (Ej. Pago Seguro)" value={eventForm.nombre} onChange={(e) => setEventForm({...eventForm, nombre: e.target.value})} style={inputModalStyle} />
-                        <input type="number" placeholder="Monto $" value={eventForm.monto} onChange={(e) => setEventForm({...eventForm, monto: e.target.value})} style={inputModalStyle} />
-                        <select value={eventForm.frecuencia} onChange={(e) => setEventForm({...eventForm, frecuencia: e.target.value})} style={inputModalStyle}>
-                            <option value="Único">Solo esta vez</option><option value="Semanal">Semanal</option><option value="Mensual">Mensual</option><option value="Anual">Anual</option>
-                        </select>
-                        <button onClick={handleSaveLocalEvent} style={{ ...btnMainAdd, width: '100%', marginTop: '10px', background: 'var(--success)' }}>Crear Alerta en Bóveda</button>
-                    </div>
+            <div style={containerStyle}>
+                
+                {/* BARRA DE PROGRESO */}
+                <div style={progressContainer}>
+                    <div style={{...progressStep, background: paso >= 1 ? 'var(--primary)' : 'var(--bg-tertiary)'}}></div>
+                    <div style={{...progressStep, background: paso >= 2 ? 'var(--primary)' : 'var(--bg-tertiary)'}}></div>
+                    <div style={{...progressStep, background: paso >= 3 ? 'var(--primary)' : 'var(--bg-tertiary)'}}></div>
                 </div>
-            )}
 
-            <div style={headerStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <button onClick={onClose} style={backBtnStyle}><FaArrowLeft /> Volver</button>
-                    <h1 style={{ margin: 0, color: 'var(--text-main)', fontSize: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}><FaShieldAlt color="var(--success)" /> Bóveda Intocable</h1>
-                </div>
-            </div>
-            
-            <div className="boveda-content" style={contentContainer}>
-                <div className="boveda-card" style={cardStyle}>
-                    <div style={iconCircle}><FaLock /></div>
-                    <h2 style={titleStyle}>Fondo de Emergencia Real</h2>
-                    <p style={descStyle}>Dinero blindado exclusivamente para salud, desempleo o crisis mayores.</p>
+                <div style={cardStyle}>
                     
-                    <h1 className="boveda-balance" style={balanceStyle}>${saldoBoveda.toLocaleString('es-MX', {minimumFractionDigits: 2})}</h1>
-                    <p style={{ margin: '0 0 20px 0', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                        <FaWallet /> Gran Total (Cascada + Cajas): <span style={{color: 'var(--text-main)'}}>${granTotal.toLocaleString('es-MX', {minimumFractionDigits: 2})}</span>
-                    </p>
+                    {/* PASO 1: DATOS PERSONALES */}
+                    {paso === 1 && (
+                        <div style={stepAnimStyle}>
+                            <div style={iconBadge}><FaUser /></div>
+                            <h1 style={titleStyle}>¡Bienvenido a FinTrack!</h1>
+                            <p style={descStyle}>El motor financiero que administrará tu dinero en automático. Para empezar, ¿cómo te llamamos?</p>
+                            
+                            <label style={labelStyle}>Tu Nombre o Apodo</label>
+                            <input type="text" placeholder="Ej. Diego" value={nombre} onChange={e => setNombre(e.target.value)} style={inputStyle} />
+                            
+                            <label style={labelStyle}>Fecha de Nacimiento</label>
+                            <input type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} style={inputStyle} />
+                        </div>
+                    )}
 
-                    {/* 💡 BARRA DE PROGRESO DEL FONDO DE EMERGENCIA */}
-                    <div style={progressCardStyle}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <FaShieldAlt color="var(--primary)" /> Progreso del Fondo
-                            </span>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--primary)' }}>
-                                Meta: ${metaTotal.toLocaleString()}
-                            </span>
+                    {/* PASO 2: SEGURIDAD */}
+                    {paso === 2 && (
+                        <div style={stepAnimStyle}>
+                            <div style={{...iconBadge, background: 'var(--success-light)', color: 'var(--success)'}}><FaLock /></div>
+                            <h1 style={titleStyle}>Blindaje Financiero</h1>
+                            <p style={descStyle}>Tus metas y bóveda estarán protegidas. Crea un NIP de 4 dígitos para autorizar movimientos importantes.</p>
+                            
+                            <label style={labelStyle}>Nuevo NIP (4 números)</label>
+                            <input type="password" maxLength="4" placeholder="••••" value={pin} onChange={e => setPin(e.target.value.replace(/[^0-9]/g, ''))} style={{...inputStyle, textAlign: 'center', letterSpacing: '8px', fontSize: '24px'}} />
+                            
+                            <label style={labelStyle}>Confirmar NIP</label>
+                            <input type="password" maxLength="4" placeholder="••••" value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/[^0-9]/g, ''))} style={{...inputStyle, textAlign: 'center', letterSpacing: '8px', fontSize: '24px'}} />
                         </div>
-                        
-                        <div style={{ width: '100%', height: '10px', background: 'var(--border-color)', borderRadius: '5px', overflow: 'hidden', marginBottom: '15px' }}>
-                            <div style={{ height: '100%', width: `${porcentajeProgreso}%`, background: 'var(--primary)', transition: 'width 0.4s ease', boxShadow: isDarkMode ? '0 0 10px rgba(59, 130, 246, 0.8)' : 'none' }}></div>
-                        </div>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '14px', color: 'var(--text-main)' }}>Guardado: <b style={{color: 'var(--text-main)'}}>${saldoBoveda.toLocaleString()}</b></span>
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                <button onClick={handleEliminarFondo} style={btnTrashStyle} title="Eliminar fondo y recuperar dinero"><FaTrash /></button>
-                                <div style={badgeCompletadoStyle}>{porcentajeProgreso.toFixed(0)}% Completado</div>
+                    )}
+
+                    {/* PASO 3: DINERO Y CICLO */}
+                    {paso === 3 && (
+                        <div style={stepAnimStyle}>
+                            <div style={{...iconBadge, background: 'var(--warning-light)', color: 'var(--warning)'}}><FaWallet /></div>
+                            <h1 style={titleStyle}>Ajuste de Motores</h1>
+                            <p style={descStyle}>Casi listos. Dile a FinTrack cómo funciona tu dinero para configurar tu Cascada.</p>
+                            
+                            <label style={labelStyle}>¿Cuánto dinero físico tienes justo ahora?</label>
+                            <div style={{position: 'relative', marginBottom: '20px'}}>
+                                <span style={currencySymbol}>$</span>
+                                <input type="number" min="0" onKeyDown={blockInvalidChars} placeholder="0.00" value={saldo} onChange={e => setSaldo(e.target.value)} style={{...inputStyle, paddingLeft: '35px', marginBottom: 0}} />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                                <div>
+                                    <label style={labelStyle}><FaCalendarAlt /> Ciclo Maestro</label>
+                                    <select value={ciclo} onChange={e => setCiclo(e.target.value)} style={inputStyle}>
+                                        <option value="Diario">Diario</option>
+                                        <option value="Semanal">Semanal</option>
+                                        <option value="Quincenal">Quincenal</option>
+                                        <option value="Mensual">Mensual</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Día de Cobro</label>
+                                    <input type="number" min="1" max="31" onKeyDown={blockInvalidChars} placeholder="Día" value={diaInicio} onChange={e => setDiaInicio(e.target.value)} style={inputStyle} />
+                                </div>
+                            </div>
+
+                            <label style={labelStyle}><FaMoneyBillWave /> ¿Cuánto ganas aprox. por ciclo ({ciclo})?</label>
+                            <div style={{position: 'relative'}}>
+                                <span style={currencySymbol}>$</span>
+                                <input type="number" min="0" onKeyDown={blockInvalidChars} placeholder="Ingreso esperado" value={ingresoBase} onChange={e => setIngresoBase(e.target.value)} style={{...inputStyle, paddingLeft: '35px'}} />
                             </div>
                         </div>
+                    )}
 
-                        {metaTotal === 0 ? (
-                            <p style={{margin: '15px 0 0 0', fontSize: '12px', color: 'var(--danger)', textAlign: 'center'}}>
-                                ⚠️ Elimina este cajón (botón rojo) y vuelve a crearlo desde "Mis Metas" para definir tu objetivo.
-                            </p>
-                        ) : (
-                            ciclosRestantes > 0 ? (
-                                <p style={{margin: '10px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'right'}}>
-                                    Faltan aprox. <b>{ciclosRestantes} aportes</b> de tu ciclo {cicloMaestro}
-                                </p>
-                            ) : (
-                                <p style={{margin: '10px 0 0 0', fontSize: '13px', color: 'var(--success)', textAlign: 'right', fontWeight: 'bold'}}>
-                                    ¡Meta alcanzada! 🎉
-                                </p>
-                            )
+                    {/* BOTONERÍA */}
+                    <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
+                        {paso > 1 && (
+                            <button onClick={() => setPaso(paso - 1)} style={btnBackStyle}>Atrás</button>
                         )}
+                        <button onClick={siguientePaso} style={btnNextStyle}>
+                            {paso === 3 ? <><FaCheckCircle /> Iniciar Motor</> : <>Siguiente <FaArrowRight /></>}
+                        </button>
                     </div>
 
-                    <div className="boveda-actions" style={actionRow}>
-                        <button className="boveda-btn" onClick={handleAdd} style={btnAdd}><FaArrowUp /> Blindar Dinero</button>
-                        <button className="boveda-btn" onClick={handleWithdraw} style={btnWithdraw}><FaArrowDown /> Retirar a Cascada</button>
-                    </div>
-                </div>
-
-                <div className="boveda-grid-bottom" style={gridBottom}>
-                    <div style={calendarContainer}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}><span style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--text-main)' }}><FaCalendarAlt color="var(--success)" /> Calendario Bóveda</span></div>
-                        <div style={gridDiasSemana}>{['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'].map(d => <div key={d} style={headerDia}>{d.substring(0,1)}</div>)}</div>
-                        <div style={gridCalendario}>
-                            {(() => {
-                                const dias = []; const dEnMes = new Date(anioActual, mesActual + 1, 0).getDate(); const pDia = new Date(anioActual, mesActual, 1).getDay();
-                                for (let i = 0; i < pDia; i++) dias.push(null); for (let i = 1; i <= dEnMes; i++) dias.push(i);
-                                return dias.map((dia, i) => {
-                                    const esHoy = dia === hoy.getDate() && mesActual === hoy.getMonth() && anioActual === hoy.getFullYear();
-                                    const { tienePago, tieneGasto } = checkEventosDia(dia);
-                                    
-                                    let bgColor = 'var(--bg-secondary)'; let textColor = 'var(--text-main)';
-                                    if (esHoy) { bgColor = 'var(--primary)'; textColor = 'white'; } 
-                                    else if (tienePago && tieneGasto) { bgColor = 'linear-gradient(135deg, var(--success) 50%, var(--danger) 50%)'; textColor = 'white'; } 
-                                    else if (tienePago) { bgColor = 'var(--success)'; textColor = 'white'; } 
-                                    else if (tieneGasto) { bgColor = 'var(--danger)'; textColor = 'white'; }
-                                    
-                                    return <div key={i} onClick={() => { if(dia) openEventModal(dia); }} style={{...celdaDia, background: bgColor, color: textColor, fontWeight: (tienePago || tieneGasto || esHoy) ? 'bold' : 'normal', cursor: dia ? 'pointer' : 'default', boxShadow: (tienePago || tieneGasto) ? '0 3px 10px var(--overlay)' : 'none'}}>{dia || ''}</div>;
-                                });
-                            })()}
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div style={remindersContainer}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}><h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', margin: 0, color: 'var(--text-main)' }}><FaHistory color="var(--success)" /> Historial Bóveda</h4></div>
-                            {localHistorial.length === 0 ? ( <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>Sin movimientos de emergencia.</p> ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '180px', overflowY: 'auto' }}>
-                                    {localHistorial.map(h => {
-                                        const isIngresoLocal = /ingreso|blindaje|asegurado|reembolso/i.test(h.nombre);
-                                        return (
-                                            <div key={h.id} style={miniAlertCard}>
-                                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.nombre}</span>
-                                                <span style={{ fontWeight: 'bold', color: isIngresoLocal ? 'var(--success)' : 'var(--danger)' }}>
-                                                    {isIngresoLocal ? '+' : '-'}${h.monto}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={remindersContainer}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}><h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', margin: 0, color: 'var(--text-main)' }}><FaBell color="var(--warning)" /> Alertas Bóveda</h4></div>
-                            {localEventos.length === 0 ? ( <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>Sin alertas programadas.</p> ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '180px', overflowY: 'auto' }}>
-                                    {localEventos.map(e => (
-                                        <div key={e.id} style={miniAlertCard}><span style={miniDayBadge}>{e.dia}</span><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.nombre}</span><FaTrash onClick={() => onDeleteEvent(e.id)} style={{cursor: 'pointer', color: 'var(--danger)'}} /></div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
             </div>
-
-            <GuiaTutorial 
-                seccion="boveda_emergencias_v1"
-                pasos={[
-                    {
-                        titulo: "Tu Escudo Financiero 🛡️",
-                        contenido: "Esta bóveda es intocable. El dinero aquí depositado debe usarse EXCLUSIVAMENTE para emergencias médicas, accidentes o pérdida de empleo.",
-                        consejo: "Nunca mezcles tus ahorros para viajes o lujos (Caja Fuerte) con este dinero. La tranquilidad mental no tiene precio."
-                    }
-                ]}
-            />
         </div>
     );
 };
 
-// ESTILOS DINÁMICOS BASADOS EN VARIABLES CSS (Ya conectados con tu modo oscuro)
-const fullScreenStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'var(--bg-main)', zIndex: 3000, overflowY: 'auto', display: 'flex', flexDirection: 'column', color: 'var(--text-main)', transition: 'background-color 0.3s' };
-const headerStyle = { backgroundColor: 'var(--bg-card)', padding: '25px 40px', boxShadow: 'var(--card-shadow)', position: 'sticky', top: 0, zIndex: 3010, borderBottom: '1px solid var(--border-color)', transition: '0.3s' };
-const backBtnStyle = { padding: '12px 20px', borderRadius: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'8px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-main)', transition: '0.2s' };
-const contentContainer = { padding: '60px 40px', maxWidth: '1000px', margin: '0 auto', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' };
-const cardStyle = { backgroundColor: 'var(--bg-card)', padding: '50px 40px', borderRadius: '35px', boxShadow: 'var(--card-shadow)', textAlign: 'center', border: '2px solid var(--success-light)', width: '100%', marginBottom: '30px', boxSizing: 'border-box', transition: '0.3s' };
-const iconCircle = { width: '90px', height: '90px', borderRadius: '50%', backgroundColor: 'var(--success-light)', color: 'var(--success)', fontSize: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 25px auto', boxShadow: '0 0 15px var(--success-light)' };
-const titleStyle = { margin: '0 0 10px 0', fontSize: '24px', color: 'var(--text-main)' };
-const descStyle = { margin: '0 0 20px 0', color: 'var(--text-muted)', fontSize: '15px' };
-const balanceStyle = { fontSize: '65px', margin: '0 0 5px 0', color: 'var(--success-alt)', fontWeight: 'bold', textShadow: '0 0 20px var(--success-light)' };
-const actionRow = { display: 'flex', gap: '20px' };
-const btnAdd = { flex: 1, backgroundColor: 'var(--success-alt)', color: 'white', border: 'none', borderRadius: '18px', padding: '20px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 10px 25px var(--success-light)', transition: '0.2s' };
-const btnWithdraw = { flex: 1, backgroundColor: 'var(--bg-card)', color: 'var(--success)', border: '2px solid var(--success)', borderRadius: '18px', padding: '20px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: '0.2s' };
-const gridBottom = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' };
-const calendarContainer = { backgroundColor: 'var(--bg-card)', padding: '30px', borderRadius: '25px', border: '1px solid var(--border-color)', borderTop: '4px solid var(--success)', boxShadow: 'var(--card-shadow)', transition: '0.3s' };
-const gridDiasSemana = { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: '15px', fontSize: '13px', color: 'var(--text-light)', fontWeight: 'bold' };
-const headerDia = { padding: '5px 0' };
-const gridCalendario = { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' };
-const celdaDia = { textAlign: 'center', padding: '12px 0', fontSize: '15px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' };
-const remindersContainer = { backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '25px 30px', borderRadius: '25px', boxShadow: 'var(--card-shadow)', transition: '0.3s' };
-const miniAlertCard = { fontSize: '14px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px', borderRadius: '12px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-light)', gap: '10px', transition: '0.3s' };
-const miniDayBadge = { background: 'var(--bg-tertiary)', padding: '5px 10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', color: 'var(--text-main)', border: '1px solid var(--border-color)' };
-const overlayStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'var(--overlay)', zIndex: 3999, backdropFilter: 'blur(5px)' };
-const modalCenterStyle = { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'var(--bg-card)', padding: '35px', borderRadius: '25px', boxShadow: 'var(--modal-shadow)', zIndex: 4000, width: '380px', boxSizing: 'border-box', border: '1px solid var(--border-color)', transition: '0.3s' };
-const inputModalStyle = { padding: '15px', borderRadius: '12px', border: '1px solid var(--border-light)', width: '100%', marginBottom: '15px', outline: 'none', background: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '15px', boxSizing: 'border-box', transition: '0.3s' };
-const typeSelectorGrid = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' };
-const typeBtn = { padding: '15px', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', transition: '0.2s' };
-const btnMainAdd = { flex: 1, color: 'white', border: 'none', borderRadius: '15px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', transition: '0.2s' };
-const badgeDayStyle = { color: '#fff', padding: '8px 20px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px' };
+// ESTILOS DINÁMICOS BASADOS EN VARIABLES CSS
+const fullScreenStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'var(--bg-main)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.3s' };
+const containerStyle = { width: '100%', maxWidth: '500px', padding: '20px', boxSizing: 'border-box' };
+const progressContainer = { display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' };
+const progressStep = { height: '6px', flex: 1, borderRadius: '3px', transition: 'background-color 0.4s ease' };
+const cardStyle = { backgroundColor: 'var(--bg-card)', padding: '40px', borderRadius: '30px', boxShadow: 'var(--modal-shadow)', border: '1px solid var(--border-color)' };
+const stepAnimStyle = { animation: 'fadeIn 0.4s ease-in-out' };
+const iconBadge = { width: '70px', height: '70px', borderRadius: '20px', background: 'var(--primary-light)', color: 'var(--primary)', fontSize: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '25px', boxShadow: '0 5px 15px var(--primary-light)' };
+const titleStyle = { margin: '0 0 10px 0', fontSize: '28px', color: 'var(--text-main)', fontWeight: 'bold' };
+const descStyle = { margin: '0 0 30px 0', fontSize: '15px', color: 'var(--text-muted)', lineHeight: '1.5' };
+const labelStyle = { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '10px' };
+const inputStyle = { width: '100%', padding: '15px', borderRadius: '15px', border: '1px solid var(--border-light)', outline: 'none', background: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '16px', boxSizing: 'border-box', marginBottom: '20px', transition: '0.3s' };
+const currencySymbol = { position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)', fontWeight: 'bold', fontSize: '16px' };
+const btnNextStyle = { flex: 2, background: 'var(--primary)', color: 'white', border: 'none', padding: '18px', borderRadius: '15px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: '0.2s', boxShadow: '0 5px 15px var(--primary-light)' };
+const btnBackStyle = { flex: 1, background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '18px', borderRadius: '15px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' };
 
-const progressCardStyle = { backgroundColor: 'var(--bg-secondary)', padding: '20px', borderRadius: '20px', border: '1px solid var(--border-color)', marginBottom: '30px', textAlign: 'left', transition: '0.3s' };
-const btnTrashStyle = { background: 'var(--danger-light)', color: 'var(--danger)', border: 'none', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: '14px', transition: '0.2s' };
-const badgeCompletadoStyle = { background: 'var(--primary-light)', color: 'var(--primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', border: '1px solid var(--primary-light)' };
-
-export default BovedaFullScreen;
+export default BienvenidaFullScreen;
