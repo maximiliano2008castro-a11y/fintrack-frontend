@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaBullseye, FaMagic, FaPiggyBank, FaBrain, FaRocket, FaExclamationTriangle, FaCheckCircle, FaTimes, FaShieldAlt, FaPlus, FaBriefcase, FaHourglassHalf, FaGamepad, FaChartLine, FaChartBar, FaLightbulb, FaSyncAlt } from 'react-icons/fa';
 import GuiaTutorial from './GuiaTutorial';
 
-const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingresosMensuales, gastosFijosBase, gastosVariablesBase, edadUsuario, cicloMaestro = 'Mensual' }) => {
+// 💡 Se agregó "isDarkMode" a los props
+const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingresosMensuales, gastosFijosBase, gastosVariablesBase, edadUsuario, cicloMaestro = 'Mensual', isDarkMode }) => {
     const [vistaActual, setVistaActual] = useState('menu');
 
     const [gastosVitalesMensuales, setGastosVitalesMensuales] = useState('');
@@ -77,7 +78,7 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
         if (cicloMaestro === 'Diario') capacidadMensual = capacidadPorCiclo * 30;
 
         if (capacidadMensual > ingresosMensuales) {
-            setResultadoIA({ estado: 'Imposible', color: '#dc3545', icono: <FaTimes />, mensaje: `Quieres ahorrar $${capacidadMensual.toLocaleString()} al mes, pero ganas $${ingresosMensuales.toLocaleString()}.`, opciones: [], conColchon: usarColchon });
+            setResultadoIA({ estado: 'Imposible', color: 'var(--danger)', icono: <FaTimes />, mensaje: `Quieres ahorrar $${capacidadMensual.toLocaleString()} al mes, pero ganas $${ingresosMensuales.toLocaleString()}.`, opciones: [], conColchon: usarColchon });
             setVistaActual('resultadoInteligente'); return;
         }
 
@@ -87,11 +88,11 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
 
         let estado, color, mensaje, icono, opciones;
         if (diferencia >= 0) {
-            estado = '¡Súper Viable!'; color = '#28a745'; icono = <FaCheckCircle />;
+            estado = '¡Súper Viable!'; color = 'var(--success)'; icono = <FaCheckCircle />;
             mensaje = `Tu ahorro cubre la cuota de $${cuotaCicloIdeal.toLocaleString(undefined, {minimumFractionDigits: 2})} por ciclo.`;
             opciones = [{ titulo: 'Plan Ideal', desc: `Ahorrar $${cuotaCicloIdeal.toLocaleString(undefined, {minimumFractionDigits: 2})} cada ${cicloMaestro.toLowerCase()} por ${meses} meses.`, monto: cuotaCicloIdeal, frecuencia: cicloMaestro }];
         } else {
-            estado = 'Retador'; color = '#ffc107'; icono = <FaRocket />;
+            estado = 'Retador'; color = 'var(--warning)'; icono = <FaRocket />;
             mensaje = `Necesitas $${cuotaCicloIdeal.toLocaleString(undefined, {minimumFractionDigits: 2})} por ciclo. Te faltan $${Math.abs(diferencia).toFixed(2)}.`;
             opciones = [
                 { titulo: 'Ajustar Tiempo', desc: `Ahorrar tus $${capacidadPorCiclo.toLocaleString()} actuales. Lo lograrás en ${mesesReales} meses.`, monto: capacidadPorCiclo, frecuencia: cicloMaestro },
@@ -140,7 +141,7 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
         const gastosPorCiclo = (parseFloat(gastosFijosBase) || 0) + (parseFloat(gastosVariablesBase) || 0);
         const sobranteRealCiclo = ingresosPorCiclo - gastosPorCiclo;
 
-        // 1️⃣ MODO MANUAL (El usuario escribió un número de ciclos)
+        // 1️⃣ MODO MANUAL
         if (ciclosManuales && ciclosManuales > 0) {
             if (ciclosManuales > 24) return alert("🚨 Un micro-reto no puede durar más de 24 ciclos (aprox. 2 años). Usa la herramienta de 'Ahorro Inteligente' en su lugar.");
 
@@ -159,7 +160,7 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
                 setResultadoReto({ tipo: 'manual_sano', ciclos: ciclosManuales, cuota: cuotaCiclo });
             }
         } 
-        // 2️⃣ MODO AUTOMÁTICO (El usuario lo dejó en blanco para que la app decida)
+        // 2️⃣ MODO AUTOMÁTICO
         else {
             if (sobranteRealCiclo <= 0) {
                 return alert("🚨 No tienes dinero libre este ciclo. Ajusta tus gastos o escribe los ciclos manualmente para forzar la meta bajo tu riesgo.");
@@ -167,11 +168,9 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
 
             const cuota4Ciclos = montoObj / 4;
             
-            // Intenta hacerlo en 4 ciclos como objetivo ideal
             if (cuota4Ciclos <= sobranteRealCiclo) {
                 setResultadoReto({ tipo: 'auto_ideal', ciclos: 4, cuota: cuota4Ciclos });
             } 
-            // Si en 4 ciclos no alcanza, calcula en cuántos sí alcanza exactamente
             else {
                 const ciclosReales = Math.ceil(montoObj / sobranteRealCiclo);
                 
@@ -191,21 +190,21 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
 
     const renderMenu = () => (
         <>
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}><h2 style={{ margin: '0 0 10px 0', color: '#2f3542', fontSize: '32px' }}>Laboratorio Financiero 🔬</h2><p style={{ margin: 0, color: '#747d8c', fontSize: '16px' }}>Proyecta tus metas ajustadas a tu ciclo <b>{cicloMaestro}</b>.</p></div>
+            <div style={{ textAlign: 'center', marginBottom: '40px' }}><h2 style={{ margin: '0 0 10px 0', color: 'var(--text-main)', fontSize: '32px' }}>Laboratorio Financiero 🔬</h2><p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '16px' }}>Proyecta tus metas ajustadas a tu ciclo <b style={{color: 'var(--text-main)'}}>{cicloMaestro}</b>.</p></div>
             <div style={gridStyle}>
-                <div style={{...toolCard, borderTop: '5px solid #007bff'}} onClick={() => setVistaActual('inteligente')}><div style={{...iconBadgeStyle, background: '#eef3ff', color: '#007bff'}}><FaMagic /></div><h3 style={cardTitle}>Ahorro Inteligente</h3><p style={cardDesc}>Analiza la viabilidad de compras.</p></div>
-                <div style={{...toolCard, borderTop: '5px solid #28a745'}} onClick={() => setVistaActual('emergencia')}><div style={{...iconBadgeStyle, background: '#e6f4ea', color: '#28a745'}}><FaShieldAlt /></div><h3 style={cardTitle}>Fondo de Emergencia</h3><p style={cardDesc}>Calculadora y activador de escudo vital.</p></div>
-                <div style={{...toolCard, borderTop: '5px solid #6f42c1'}} onClick={() => setVistaActual('negocio')}><div style={{...iconBadgeStyle, background: '#f3e8ff', color: '#6f42c1'}}><FaBriefcase /></div><h3 style={cardTitle}>Simulador Negocio Pro</h3><p style={cardDesc}>Márgenes, equilibrio y ROI exacto.</p></div>
-                <div style={{...toolCard, borderTop: '5px solid #6610f2'}} onClick={() => setVistaActual('maquina')}><div style={{...iconBadgeStyle, background: '#e0cffc', color: '#6610f2'}}><FaChartLine /></div><h3 style={cardTitle}>Máquina del Tiempo Pro</h3><p style={cardDesc}>Calcula tu pensión vitalicia real.</p></div>
-                <div style={{...toolCard, borderTop: '5px solid #e83e8c'}} onClick={() => setVistaActual('retos')}><div style={{...iconBadgeStyle, background: '#fce3ed', color: '#e83e8c'}}><FaGamepad /></div><h3 style={cardTitle}>Micro-Retos</h3><p style={cardDesc}>Divide caprichos a tu propio ritmo.</p></div>
+                <div style={{...toolCard, borderTop: '5px solid var(--primary)'}} onClick={() => setVistaActual('inteligente')}><div style={{...iconBadgeStyle, background: 'var(--primary-light)', color: 'var(--primary)'}}><FaMagic /></div><h3 style={cardTitle}>Ahorro Inteligente</h3><p style={cardDesc}>Analiza la viabilidad de compras.</p></div>
+                <div style={{...toolCard, borderTop: '5px solid var(--success)'}} onClick={() => setVistaActual('emergencia')}><div style={{...iconBadgeStyle, background: 'var(--success-light)', color: 'var(--success)'}}><FaShieldAlt /></div><h3 style={cardTitle}>Fondo de Emergencia</h3><p style={cardDesc}>Calculadora y activador de escudo vital.</p></div>
+                <div style={{...toolCard, borderTop: '5px solid #6f42c1'}} onClick={() => setVistaActual('negocio')}><div style={{...iconBadgeStyle, background: 'rgba(111, 66, 193, 0.15)', color: '#6f42c1'}}><FaBriefcase /></div><h3 style={cardTitle}>Simulador Negocio Pro</h3><p style={cardDesc}>Márgenes, equilibrio y ROI exacto.</p></div>
+                <div style={{...toolCard, borderTop: '5px solid #6610f2'}} onClick={() => setVistaActual('maquina')}><div style={{...iconBadgeStyle, background: 'rgba(102, 16, 242, 0.15)', color: '#6610f2'}}><FaChartLine /></div><h3 style={cardTitle}>Máquina del Tiempo Pro</h3><p style={cardDesc}>Calcula tu pensión vitalicia real.</p></div>
+                <div style={{...toolCard, borderTop: '5px solid var(--pink)'}} onClick={() => setVistaActual('retos')}><div style={{...iconBadgeStyle, background: 'var(--pink-light)', color: 'var(--pink)'}}><FaGamepad /></div><h3 style={cardTitle}>Micro-Retos</h3><p style={cardDesc}>Divide caprichos a tu propio ritmo.</p></div>
             </div>
         </>
     );
 
     const renderInteligente = () => (
         <div style={formContainerStyle}>
-            <h2 style={{ textAlign: 'center', color: '#007bff', marginBottom: '10px' }}><FaMagic /> Ahorro Inteligente</h2>
-            <p style={{ textAlign: 'center', color: '#747d8c', marginBottom: '30px' }}>Ingreso por ciclo <b>({cicloMaestro})</b>: <b>${ajustarAlCicloActual(ingresosMensuales).toLocaleString()}</b></p>
+            <h2 style={{ textAlign: 'center', color: 'var(--primary)', marginBottom: '10px' }}><FaMagic /> Ahorro Inteligente</h2>
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '30px' }}>Ingreso por ciclo <b>({cicloMaestro})</b>: <b style={{color:'var(--text-main)'}}>${ajustarAlCicloActual(ingresosMensuales).toLocaleString()}</b></p>
             <label style={labelStyle}>¿Qué quieres comprar o lograr?</label><input type="text" placeholder="Ej. Laptop, Viaje, Coche" value={formInteligente.nombreMeta} onChange={e => setFormInteligente({...formInteligente, nombreMeta: e.target.value})} style={inputStyle} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div><label style={labelStyle}>Precio Total ($)</label><input type="number" min="0" onKeyDown={blockInvalidChars} value={formInteligente.montoTotal} onChange={e => setFormInteligente({...formInteligente, montoTotal: e.target.value})} style={inputStyle} /></div>
@@ -220,11 +219,11 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
 
     const renderResultadoInteligente = () => (
         <div style={formContainerStyle}>
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}><div style={{ fontSize: '60px', color: resultadoIA?.color, marginBottom: '15px' }}>{resultadoIA?.icono}</div><h1 style={{ margin: '0 0 10px 0', color: resultadoIA?.color, fontSize: '32px' }}>{resultadoIA?.estado}</h1><p style={{ margin: 0, color: '#2f3542', fontSize: '18px' }}>{resultadoIA?.mensaje}</p></div>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}><div style={{ fontSize: '60px', color: resultadoIA?.color, marginBottom: '15px' }}>{resultadoIA?.icono}</div><h1 style={{ margin: '0 0 10px 0', color: resultadoIA?.color, fontSize: '32px' }}>{resultadoIA?.estado}</h1><p style={{ margin: 0, color: 'var(--text-main)', fontSize: '18px' }}>{resultadoIA?.mensaje}</p></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '30px' }}>
                 {resultadoIA?.opciones.map((opc, idx) => (
                     <div key={idx} style={optionCardStyle}>
-                        <div style={{ flex: 1 }}><h3 style={{ margin: '0 0 5px 0' }}>{opc.titulo}</h3><p style={{ margin: 0, color: '#747d8c', fontSize: '14px' }}>{opc.desc}</p></div>
+                        <div style={{ flex: 1 }}><h3 style={{ margin: '0 0 5px 0', color: 'var(--text-main)' }}>{opc.titulo}</h3><p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px' }}>{opc.desc}</p></div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <button onClick={() => { onAddCajon(`Meta: ${formInteligente.nombreMeta} (Total: ${Math.round(resultadoIA.totalExacto)})`, opc.monto, opc.frecuencia); onClose(); }} style={btnCreateCajon}><FaPlus /> Enviar a mis Metas</button>
                         </div>
@@ -248,19 +247,19 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
 
         return (
             <div style={formContainerStyle}>
-                <div style={{ textAlign: 'center', marginBottom: '30px' }}><FaShieldAlt style={{ fontSize: '40px', color: '#28a745', marginBottom: '10px' }}/><h2 style={{ margin: '0 0 10px 0', color: '#28a745' }}>Configurar Fondo de Emergencia</h2><p style={{ margin: 0, color: '#747d8c', fontSize: '15px' }}>Deducimos tus gastos vitales de tus cajones Fijos y Variables.</p></div>
+                <div style={{ textAlign: 'center', marginBottom: '30px' }}><FaShieldAlt style={{ fontSize: '40px', color: 'var(--success)', marginBottom: '10px' }}/><h2 style={{ margin: '0 0 10px 0', color: 'var(--success)' }}>Configurar Fondo de Emergencia</h2><p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '15px' }}>Deducimos tus gastos vitales de tus cajones Fijos y Variables.</p></div>
                 <label style={labelStyle}>Gastos Vitales Mensuales (Calculado auto)</label>
-                <div style={{position: 'relative', marginBottom: '25px'}}><span style={{position:'absolute', left:'15px', top:'50%', transform:'translateY(-50%)', color:'#a4b0be', fontWeight:'bold', fontSize:'18px'}}>$</span><input type="number" min="0" onKeyDown={blockInvalidChars} value={gastosVitalesMensuales} onChange={e => setGastosVitalesMensuales(e.target.value)} style={{...inputStyle, paddingLeft:'35px', margin: 0}} /></div>
+                <div style={{position: 'relative', marginBottom: '25px'}}><span style={{position:'absolute', left:'15px', top:'50%', transform:'translateY(-50%)', color:'var(--text-light)', fontWeight:'bold', fontSize:'18px'}}>$</span><input type="number" min="0" onKeyDown={blockInvalidChars} value={gastosVitalesMensuales} onChange={e => setGastosVitalesMensuales(e.target.value)} style={{...inputStyle, paddingLeft:'35px', margin: 0}} /></div>
                 <label style={labelStyle}>¿Cuántos meses quieres blindar?</label>
-                <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>{[3, 6, 12].map(m => ( <button key={m} onClick={() => setMesesEmergencia(m)} style={{...selectorBtn, border: mesesEmergencia===m?'2px solid #28a745':'1px solid #e1e5ee', background: mesesEmergencia===m?'#e6f4ea':'#fff', color: '#2f3542'}}>{m} Meses</button> ))}</div>
+                <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>{[3, 6, 12].map(m => ( <button key={m} onClick={() => setMesesEmergencia(m)} style={{...selectorBtn, border: mesesEmergencia===m?'2px solid var(--success)':'1px solid var(--border-color)', background: mesesEmergencia===m?'var(--success-light)':'var(--bg-secondary)', color: 'var(--text-main)'}}>{m} Meses</button> ))}</div>
                 <div style={resultCardStyle}>
-                    <p style={{ margin: '0 0 10px 0', color: '#747d8c', fontWeight: 'bold' }}>Objetivo Total del Fondo:</p>
-                    <h1 style={{ fontSize: '48px', margin: '10px 0 20px 0', color: '#2f3542' }}>${totalFondo.toLocaleString()}</h1>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}><label style={{...labelStyle, marginBottom: 0, color: '#2f3542'}}>Aporte por <b>{cicloMaestro}</b></label><button onClick={sugerirAporteEmergencia} style={{...miniMagicBtn, background: '#e6f4ea', color: '#28a745'}}><FaLightbulb /> Sugerir Aporte</button></div>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{fontWeight: 'bold', fontSize: '20px', color: '#a4b0be'}}>$</span><input type="number" min="0" onKeyDown={blockInvalidChars} value={aporteEmergencia} onChange={e => { setAporteEmergencia(e.target.value); setSugerenciaEmergenciaUsada(false); }} style={{...inputStyle, marginBottom: 0, flex: 1}} /></div>
-                    {mensajeTiempo && <div style={{ marginTop: '10px', color: '#2f3542', fontSize: '15px', background: '#f1f2f6', padding: '12px', borderRadius: '10px', border: '1px solid #dfe6e9' }}><b>{mensajeTiempo}</b></div>}
+                    <p style={{ margin: '0 0 10px 0', color: 'var(--text-muted)', fontWeight: 'bold' }}>Objetivo Total del Fondo:</p>
+                    <h1 style={{ fontSize: '48px', margin: '10px 0 20px 0', color: 'var(--text-main)' }}>${totalFondo.toLocaleString()}</h1>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}><label style={{...labelStyle, marginBottom: 0, color: 'var(--text-main)'}}>Aporte por <b style={{color:'var(--primary)'}}>{cicloMaestro}</b></label><button onClick={sugerirAporteEmergencia} style={{...miniMagicBtn, background: 'var(--success-light)', color: 'var(--success)'}}><FaLightbulb /> Sugerir Aporte</button></div>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{fontWeight: 'bold', fontSize: '20px', color: 'var(--text-light)'}}>$</span><input type="number" min="0" onKeyDown={blockInvalidChars} value={aporteEmergencia} onChange={e => { setAporteEmergencia(e.target.value); setSugerenciaEmergenciaUsada(false); }} style={{...inputStyle, marginBottom: 0, flex: 1}} /></div>
+                    {mensajeTiempo && <div style={{ marginTop: '10px', color: 'var(--text-main)', fontSize: '15px', background: 'var(--bg-tertiary)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-light)' }}><b>{mensajeTiempo}</b></div>}
                     
-                    <button onClick={() => { if(!aporteEmergencia || aporteEmergencia<=0) return alert('Ingresa un monto.'); onAddCajon('Fondo de Emergencia', parseFloat(aporteEmergencia), cicloMaestro, totalFondo); onClose(); }} style={{ ...actionBtnStyle, background: '#28a745', marginTop: '25px' }}><FaPlus /> Crear Cajón</button>
+                    <button onClick={() => { if(!aporteEmergencia || aporteEmergencia<=0) return alert('Ingresa un monto.'); onAddCajon('Fondo de Emergencia', parseFloat(aporteEmergencia), cicloMaestro, totalFondo); onClose(); }} style={{ ...actionBtnStyle, background: 'var(--success)', marginTop: '25px' }}><FaPlus /> Crear Cajón</button>
                 </div>
             </div>
         );
@@ -274,16 +273,16 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
                 <div><label style={labelStyle}>Gastos Fijos x Mes ($)</label><input type="number" min="0" onKeyDown={blockInvalidChars} value={formNegocio.fijosMes} onChange={e=>setFormNegocio({...formNegocio, fijosMes: e.target.value})} style={inputStyle} /></div>
                 <div><label style={labelStyle}>Costo Prod (1 ud)</label><input type="number" min="0" onKeyDown={blockInvalidChars} value={formNegocio.costoUnidad} onChange={e=>setFormNegocio({...formNegocio, costoUnidad: e.target.value})} style={inputStyle} /></div>
                 <div><label style={labelStyle}>Precio Venta (1 ud)</label><input type="number" min="0" onKeyDown={blockInvalidChars} value={formNegocio.precioVenta} onChange={e=>setFormNegocio({...formNegocio, precioVenta: e.target.value})} style={inputStyle} /></div>
-                <div style={{ gridColumn: 'span 2' }}><label style={{...labelStyle, color: '#6f42c1'}}>Unidades a vender al mes</label><input type="number" min="0" onKeyDown={blockInvalidChars} value={formNegocio.metaVentas} onChange={e=>setFormNegocio({...formNegocio, metaVentas: e.target.value})} style={{...inputStyle, borderColor: '#e0cffc'}} /></div>
+                <div style={{ gridColumn: 'span 2' }}><label style={{...labelStyle, color: '#6f42c1'}}>Unidades a vender al mes</label><input type="number" min="0" onKeyDown={blockInvalidChars} value={formNegocio.metaVentas} onChange={e=>setFormNegocio({...formNegocio, metaVentas: e.target.value})} style={{...inputStyle, borderColor: 'rgba(111, 66, 193, 0.4)'}} /></div>
             </div>
             <button onClick={analizarNegocio} style={{...actionBtnStyle, background: '#6f42c1', marginTop: '10px'}}><FaChartBar /> Calcular Rentabilidad</button>
             {resultadoNegocio && (
-                <div style={{...resultBoxStyle, borderColor: '#6f42c1', background: '#fcf8ff', marginTop: '30px'}}>
+                <div style={{...resultBoxStyle, borderColor: '#6f42c1', background: isDarkMode ? 'rgba(111,66,193,0.1)' : '#fcf8ff', marginTop: '30px'}}>
                     <h3 style={{color: '#6f42c1', marginTop: 0}}>Análisis Financiero</h3>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}><p>Margen: <b style={{color: '#28a745'}}>{resultadoNegocio.margenPorcentaje.toFixed(1)}%</b></p><p>Equilibrio: <b>{resultadoNegocio.equilibrioMensual}</b> uds/mes</p></div>
-                    <div style={{marginTop: '20px', padding: '15px', background: resultadoNegocio.utilidadMensualBruta > 0 ? '#e6f4ea' : '#ffebee', borderRadius: '15px'}}>
-                        <p style={{margin: 0, color: resultadoNegocio.utilidadMensualBruta > 0 ? '#28a745' : '#dc3545', fontWeight: 'bold'}}>Proyección Mensual</p>
-                        <h2 style={{margin: '5px 0', color: resultadoNegocio.utilidadMensualBruta > 0 ? '#1e8e3e' : '#c0392b'}}>${resultadoNegocio.utilidadMensualBruta.toLocaleString(undefined, {minimumFractionDigits:2})}</h2>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', color:'var(--text-main)'}}><p>Margen: <b style={{color: 'var(--success)'}}>{resultadoNegocio.margenPorcentaje.toFixed(1)}%</b></p><p>Equilibrio: <b>{resultadoNegocio.equilibrioMensual}</b> uds/mes</p></div>
+                    <div style={{marginTop: '20px', padding: '15px', background: resultadoNegocio.utilidadMensualBruta > 0 ? 'var(--success-light)' : 'var(--danger-light)', borderRadius: '15px'}}>
+                        <p style={{margin: 0, color: resultadoNegocio.utilidadMensualBruta > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 'bold'}}>Proyección Mensual</p>
+                        <h2 style={{margin: '5px 0', color: resultadoNegocio.utilidadMensualBruta > 0 ? 'var(--success-alt)' : 'var(--danger-alt)'}}>${resultadoNegocio.utilidadMensualBruta.toLocaleString(undefined, {minimumFractionDigits:2})}</h2>
                     </div>
                 </div>
             )}
@@ -301,9 +300,9 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
             </div>
             <button onClick={calcularInteresCompuesto} style={{...actionBtnStyle, background: '#6610f2', marginTop: '10px'}}><FaHourglassHalf /> Proyectar mi Futuro</button>
             {resultadoMaquina && (
-                <div style={{...resultBoxStyle, borderColor: '#6610f2', background: '#f8f4ff', marginTop: '30px'}}>
+                <div style={{...resultBoxStyle, borderColor: '#6610f2', background: isDarkMode ? 'rgba(102,16,242,0.1)' : '#f8f4ff', marginTop: '30px'}}>
                     <h3 style={{textAlign: 'center', color: '#6610f2', margin: '0 0 5px 0'}}>Resumen a tus {formMaquina.edadRetiro} años (en {resultadoMaquina.anosFaltantes} años)</h3>
-                    <div style={{textAlign: 'center', padding: '20px', background: '#fff', borderRadius: '15px', border: '2px solid #e0cffc', margin: '15px 0'}}><p style={{margin: 0, fontWeight: 'bold'}}>Capital Total</p><h1 style={{margin: '5px 0', color: '#6610f2'}}>${Math.round(resultadoMaquina.futuro).toLocaleString()}</h1></div>
+                    <div style={{textAlign: 'center', padding: '20px', background: 'var(--bg-card)', borderRadius: '15px', border: '2px solid rgba(102,16,242,0.3)', margin: '15px 0'}}><p style={{margin: 0, fontWeight: 'bold', color:'var(--text-main)'}}>Capital Total</p><h1 style={{margin: '5px 0', color: '#6610f2'}}>${Math.round(resultadoMaquina.futuro).toLocaleString()}</h1></div>
                     <div style={{background: '#6610f2', padding: '20px', borderRadius: '15px', color: 'white', display: 'flex', alignItems: 'center', gap: '15px'}}><FaPiggyBank style={{fontSize: '40px', opacity: 0.8}} /><div><p style={{margin: 0, opacity: 0.9}}>Pensión Vitalicia (Regla 4%)</p><h2 style={{margin: '5px 0'}}>${Math.round(resultadoMaquina.pensionMensual).toLocaleString()} / mes</h2></div></div>
                 </div>
             )}
@@ -313,9 +312,9 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
     const renderRetos = () => (
         <div style={formContainerStyle}>
             <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                <FaGamepad style={{ fontSize: '40px', color: '#e83e8c', marginBottom: '10px' }}/>
-                <h2 style={{ margin: '0 0 10px 0', color: '#e83e8c' }}>Micro-Retos</h2>
-                <p style={{ margin: 0, color: '#747d8c', fontSize: '15px' }}>Divide el costo total entre los ciclos que necesites. (Deja en blanco para Automático).</p>
+                <FaGamepad style={{ fontSize: '40px', color: 'var(--pink)', marginBottom: '10px' }}/>
+                <h2 style={{ margin: '0 0 10px 0', color: 'var(--pink)' }}>Micro-Retos</h2>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '15px' }}>Divide el costo total entre los ciclos que necesites. (Deja en blanco para Automático).</p>
             </div>
             
             <label style={labelStyle}>¿Qué capricho te vas a dar?</label>
@@ -327,50 +326,50 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
                     <input type="number" min="0" onKeyDown={blockInvalidChars} value={formReto.monto} onChange={e=>setFormReto({...formReto, monto: e.target.value})} style={inputStyle} />
                 </div>
                 <div>
-                    <label style={{...labelStyle, color: '#e83e8c'}}>¿En cuántos ciclos?</label>
-                    <input type="number" min="1" onKeyDown={blockInvalidChars} placeholder="Auto" value={formReto.ciclosManual} onChange={e=>setFormReto({...formReto, ciclosManual: e.target.value})} style={{...inputStyle, borderColor: formReto.ciclosManual ? '#e83e8c' : '#dfe6e9'}} />
+                    <label style={{...labelStyle, color: 'var(--pink)'}}>¿En cuántos ciclos?</label>
+                    <input type="number" min="1" onKeyDown={blockInvalidChars} placeholder="Auto" value={formReto.ciclosManual} onChange={e=>setFormReto({...formReto, ciclosManual: e.target.value})} style={{...inputStyle, borderColor: formReto.ciclosManual ? 'var(--pink)' : 'var(--border-color)'}} />
                 </div>
             </div>
             
-            <button onClick={generarReto} style={{...actionBtnStyle, background: '#e83e8c', marginTop: '10px'}}><FaMagic /> Evaluar Viabilidad</button>
+            <button onClick={generarReto} style={{...actionBtnStyle, background: 'var(--pink)', marginTop: '10px'}}><FaMagic /> Evaluar Viabilidad</button>
             
             {resultadoReto && (
-                <div style={{...resultBoxStyle, borderColor: (resultadoReto.tipo === 'manual_peligro' || resultadoReto.tipo === 'imposible') ? '#dc3545' : '#e83e8c', background: (resultadoReto.tipo === 'manual_peligro' || resultadoReto.tipo === 'imposible') ? '#fce8e6' : '#fce3ed', marginTop: '30px'}}>
+                <div style={{...resultBoxStyle, borderColor: (resultadoReto.tipo === 'manual_peligro' || resultadoReto.tipo === 'imposible') ? 'var(--danger)' : 'var(--pink)', background: (resultadoReto.tipo === 'manual_peligro' || resultadoReto.tipo === 'imposible') ? 'var(--danger-light)' : 'var(--pink-light)', marginTop: '30px'}}>
                     
                     {resultadoReto.tipo === 'manual_sano' && (
                         <>
-                            <h3 style={{margin: '0 0 10px 0', color: '#e83e8c'}}>¡Súper viable! ✅</h3>
-                            <p style={{color: '#2f3542', fontSize: '15px'}}>Pagarás <b>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo durante {resultadoReto.ciclos} ciclos.</p>
-                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: '#e83e8c'}}><FaPlus /> Crear Cajón de Reto</button>
+                            <h3 style={{margin: '0 0 10px 0', color: 'var(--pink)'}}>¡Súper viable! ✅</h3>
+                            <p style={{color: 'var(--text-main)', fontSize: '15px'}}>Pagarás <b style={{color:'var(--pink)'}}>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo durante {resultadoReto.ciclos} ciclos.</p>
+                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: 'var(--pink)'}}><FaPlus /> Crear Cajón de Reto</button>
                         </>
                     )}
 
                     {resultadoReto.tipo === 'auto_ideal' && (
                         <>
-                            <h3 style={{margin: '0 0 10px 0', color: '#e83e8c'}}>¡Súper viable! ✅</h3>
-                            <p style={{color: '#2f3542', fontSize: '15px'}}>Lo resolvimos en <b>4 ciclos rápidos</b> pagando <b>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo.</p>
-                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: '#e83e8c'}}><FaPlus /> Crear Cajón de Reto</button>
+                            <h3 style={{margin: '0 0 10px 0', color: 'var(--pink)'}}>¡Súper viable! ✅</h3>
+                            <p style={{color: 'var(--text-main)', fontSize: '15px'}}>Lo resolvimos en <b style={{color:'var(--pink)'}}>4 ciclos rápidos</b> pagando <b>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo.</p>
+                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: 'var(--pink)'}}><FaPlus /> Crear Cajón de Reto</button>
                         </>
                     )}
 
                     {resultadoReto.tipo === 'auto_ajustado' && (
                         <>
-                            <h3 style={{margin: '0 0 10px 0', color: '#e83e8c'}}>¡Ajustado a tu bolsillo! 🎯</h3>
-                            <p style={{color: '#2f3542', fontSize: '15px'}}>Para que no te quedes en ceros, la app lo calculó en <b>{resultadoReto.ciclos} ciclos</b> pagando <b>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo.</p>
-                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: '#e83e8c'}}><FaPlus /> Crear Cajón de Reto</button>
+                            <h3 style={{margin: '0 0 10px 0', color: 'var(--pink)'}}>¡Ajustado a tu bolsillo! 🎯</h3>
+                            <p style={{color: 'var(--text-main)', fontSize: '15px'}}>Para que no te quedes en ceros, la app lo calculó en <b style={{color:'var(--pink)'}}>{resultadoReto.ciclos} ciclos</b> pagando <b>${resultadoReto.cuota.toLocaleString(undefined, {maximumFractionDigits:2})}</b> por ciclo.</p>
+                            <button onClick={() => crearRetoCajon(resultadoReto.cuota, resultadoReto.ciclos)} style={{...btnCreateCajon, width: '100%', marginTop: '20px', background: 'var(--pink)'}}><FaPlus /> Crear Cajón de Reto</button>
                         </>
                     )}
 
                     {resultadoReto.tipo === 'manual_peligro' && (
                         <>
-                            <h3 style={{margin: '0 0 10px 0', color: '#dc3545'}}>¡Reto muy agresivo! 🚨</h3>
-                            <p style={{color: '#2f3542', fontSize: '14px', marginBottom: '15px'}}>Para lograrlo en {resultadoReto.ciclosOriginales} ciclos necesitas <b>${resultadoReto.cuotaOriginal.toLocaleString(undefined, {maximumFractionDigits:2})}</b>, pero solo te sobran <b>${resultadoReto.limiteSano.toLocaleString(undefined, {maximumFractionDigits:2})}</b> libres en tu cascada.</p>
+                            <h3 style={{margin: '0 0 10px 0', color: 'var(--danger)'}}>¡Reto muy agresivo! 🚨</h3>
+                            <p style={{color: 'var(--text-main)', fontSize: '14px', marginBottom: '15px'}}>Para lograrlo en {resultadoReto.ciclosOriginales} ciclos necesitas <b>${resultadoReto.cuotaOriginal.toLocaleString(undefined, {maximumFractionDigits:2})}</b>, pero solo te sobran <b style={{color:'var(--danger)'}}>${resultadoReto.limiteSano.toLocaleString(undefined, {maximumFractionDigits:2})}</b> libres en tu cascada.</p>
                             
                             <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                                <button onClick={() => crearRetoCajon(resultadoReto.cuotaViable, resultadoReto.ciclosViables)} style={{...btnCreateCajon, width: '100%', background: '#28a745'}}>
+                                <button onClick={() => crearRetoCajon(resultadoReto.cuotaViable, resultadoReto.ciclosViables)} style={{...btnCreateCajon, width: '100%', background: 'var(--success)'}}>
                                     <FaCheckCircle /> Plan Viable: {resultadoReto.ciclosViables} ciclos de ${resultadoReto.cuotaViable.toLocaleString(undefined, {maximumFractionDigits:2})}
                                 </button>
-                                <button onClick={() => crearRetoCajon(resultadoReto.cuotaOriginal, resultadoReto.ciclosOriginales)} style={{...btnCreateCajon, width: '100%', background: 'transparent', color: '#dc3545', border: '1px solid #dc3545'}}>
+                                <button onClick={() => crearRetoCajon(resultadoReto.cuotaOriginal, resultadoReto.ciclosOriginales)} style={{...btnCreateCajon, width: '100%', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)'}}>
                                     Forzar {resultadoReto.ciclosOriginales} ciclos de ${resultadoReto.cuotaOriginal.toLocaleString(undefined, {maximumFractionDigits:2})}
                                 </button>
                             </div>
@@ -379,9 +378,9 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
 
                     {resultadoReto.tipo === 'imposible' && (
                         <>
-                            <h3 style={{margin: '0 0 10px 0', color: '#dc3545'}}>Sin dinero libre 🚨</h3>
-                            <p style={{color: '#2f3542', fontSize: '14px', marginBottom: '15px'}}>Tus gastos fijos y variables actualmente absorben todo tu ingreso. No tienes sobrante para este capricho a menos que lo fuerces.</p>
-                            <button onClick={() => crearRetoCajon(resultadoReto.cuotaOriginal, resultadoReto.ciclosOriginales)} style={{...btnCreateCajon, width: '100%', background: 'transparent', color: '#dc3545', border: '1px solid #dc3545'}}>
+                            <h3 style={{margin: '0 0 10px 0', color: 'var(--danger)'}}>Sin dinero libre 🚨</h3>
+                            <p style={{color: 'var(--text-main)', fontSize: '14px', marginBottom: '15px'}}>Tus gastos fijos y variables actualmente absorben todo tu ingreso. No tienes sobrante para este capricho a menos que lo fuerces.</p>
+                            <button onClick={() => crearRetoCajon(resultadoReto.cuotaOriginal, resultadoReto.ciclosOriginales)} style={{...btnCreateCajon, width: '100%', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)'}}>
                                 Forzar {resultadoReto.ciclosOriginales} ciclos de ${resultadoReto.cuotaOriginal.toLocaleString(undefined, {maximumFractionDigits:2})}
                             </button>
                         </>
@@ -393,8 +392,8 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
     );
 
     return (
-        <div style={fullScreenStyle}>
-            <div style={headerStyle}><div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}><button onClick={irAtras} style={backBtnStyle}><FaArrowLeft /> Volver</button><h1 style={{ margin: '0', color: '#2f3542', fontSize: '28px', display: 'flex', alignItems: 'center', gap: '10px' }}><FaBullseye color="#dc3545" /> Mis Metas y Herramientas</h1></div></div>
+        <div className={isDarkMode ? 'theme-dark' : 'theme-light'} style={fullScreenStyle}>
+            <div style={headerStyle}><div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}><button onClick={irAtras} style={backBtnStyle}><FaArrowLeft /> Volver</button><h1 style={{ margin: '0', color: 'var(--text-main)', fontSize: '28px', display: 'flex', alignItems: 'center', gap: '10px' }}><FaBullseye color="var(--danger)" /> Mis Metas y Herramientas</h1></div></div>
             <div style={contentContainer}>
                 {vistaActual === 'menu' && renderMenu()}
                 {vistaActual === 'inteligente' && renderInteligente()}
@@ -409,27 +408,27 @@ const MetasFullScreen = ({ isOpen, onClose, onAddCajon, onReplaceAhorro, ingreso
     );
 };
 
-// ESTILOS
-const fullScreenStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: '#f4f7f6', zIndex: 3000, overflowY: 'auto', display: 'flex', flexDirection: 'column' };
-const headerStyle = { backgroundColor: '#fff', padding: '25px 40px', boxShadow: '0 5px 15px rgba(0,0,0,0.03)', position: 'sticky', top: 0, zIndex: 3010 };
-const backBtnStyle = { padding: '12px 20px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'8px', backgroundColor: '#f1f2f6', color: '#2f3542' };
+// ESTILOS DINÁMICOS BASADOS EN VARIABLES CSS
+const fullScreenStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'var(--bg-main)', zIndex: 3000, overflowY: 'auto', display: 'flex', flexDirection: 'column', transition: 'background-color 0.3s' };
+const headerStyle = { backgroundColor: 'var(--bg-card)', padding: '25px 40px', boxShadow: 'var(--card-shadow)', position: 'sticky', top: 0, zIndex: 3010, borderBottom: '1px solid var(--border-color)', transition: '0.3s' };
+const backBtnStyle = { padding: '12px 20px', borderRadius: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'8px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-main)', transition: '0.2s' };
 const contentContainer = { padding: '40px', maxWidth: '900px', margin: '0 auto', width: '100%', boxSizing: 'border-box' };
 const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '25px', paddingBottom: '50px' };
-const toolCard = { backgroundColor: '#fff', padding: '25px', borderRadius: '20px', border: '1px solid #e1e5ee', cursor: 'pointer', transition: '0.2s', boxShadow: '0 5px 15px rgba(0,0,0,0.02)' };
+const toolCard = { backgroundColor: 'var(--bg-card)', padding: '25px', borderRadius: '20px', border: '1px solid var(--border-color)', cursor: 'pointer', transition: '0.3s', boxShadow: 'var(--card-shadow)' };
 const iconBadgeStyle = { width: '55px', height: '55px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', margin: '0 auto 15px auto' };
-const cardTitle = { margin: '0 0 10px 0', fontSize: '18px', textAlign: 'center' };
-const cardDesc = { color: '#747d8c', fontSize: '13px', margin: 0, lineHeight: '1.4', textAlign: 'center' };
-const formContainerStyle = { backgroundColor: '#fff', padding: '50px', borderRadius: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' };
-const labelStyle = { display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#747d8c', marginBottom: '10px' };
-const inputStyle = { width: '100%', padding: '18px', borderRadius: '15px', border: '1px solid #dfe6e9', marginBottom: '25px', outline: 'none', background: '#f8f9fa', fontSize: '16px', boxSizing: 'border-box', fontWeight: 'bold' };
-const actionBtnStyle = { width: '100%', color: 'white', border: 'none', borderRadius: '15px', padding: '20px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer', background: '#007bff' };
-const miniMagicBtn = { background: '#eef3ff', color: '#007bff', border: 'none', padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' };
-const tipBoxSugerencia = { background: '#eef3ff', padding: '15px', borderRadius: '12px', borderLeft: '4px solid #007bff', marginBottom: '20px', color: '#004085' };
-const optionCardStyle = { display: 'flex', alignItems: 'center', background: '#f8f9fa', padding: '25px', borderRadius: '20px', border: '1px solid #e1e5ee' };
-const btnCreateCajon = { background: '#10ac84', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' };
-const btnVolverEdit = { width: '100%', background: 'none', border: '2px solid #007bff', color: '#007bff', padding: '15px', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer' };
-const selectorBtn = { flex: 1, padding: '15px', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', border: '1px solid #e1e5ee', background: '#fff', color: '#2f3542' };
-const resultCardStyle = { backgroundColor: '#fcfcfc', padding: '40px', borderRadius: '20px', textAlign: 'center', border: '2px dashed #28a745' };
-const resultBoxStyle = { marginTop: '30px', backgroundColor: '#f8f9fa', padding: '30px', borderRadius: '20px', border: '1px solid #e1e5ee' };
+const cardTitle = { margin: '0 0 10px 0', fontSize: '18px', textAlign: 'center', color: 'var(--text-main)' };
+const cardDesc = { color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: '1.4', textAlign: 'center' };
+const formContainerStyle = { backgroundColor: 'var(--bg-card)', padding: '50px', borderRadius: '30px', boxShadow: 'var(--card-shadow)', border: '1px solid var(--border-color)', transition: '0.3s' };
+const labelStyle = { display: 'block', fontSize: '14px', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '10px' };
+const inputStyle = { width: '100%', padding: '18px', borderRadius: '15px', border: '1px solid var(--border-light)', marginBottom: '25px', outline: 'none', background: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '16px', boxSizing: 'border-box', fontWeight: 'bold', transition: '0.3s' };
+const actionBtnStyle = { width: '100%', color: 'white', border: 'none', borderRadius: '15px', padding: '20px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer', transition: '0.2s' };
+const miniMagicBtn = { background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: '0.2s' };
+const tipBoxSugerencia = { background: 'var(--primary-light)', padding: '15px', borderRadius: '12px', borderLeft: '4px solid var(--primary)', marginBottom: '20px', color: 'var(--primary)' };
+const optionCardStyle = { display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', padding: '25px', borderRadius: '20px', border: '1px solid var(--border-color)', transition: '0.3s' };
+const btnCreateCajon = { background: 'var(--success-alt)', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', transition: '0.2s' };
+const btnVolverEdit = { width: '100%', background: 'transparent', border: '2px solid var(--primary)', color: 'var(--primary)', padding: '15px', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' };
+const selectorBtn = { flex: 1, padding: '15px', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' };
+const resultCardStyle = { backgroundColor: 'var(--bg-secondary)', padding: '40px', borderRadius: '20px', textAlign: 'center', border: '2px dashed var(--success)', transition: '0.3s' };
+const resultBoxStyle = { marginTop: '30px', backgroundColor: 'var(--bg-secondary)', padding: '30px', borderRadius: '20px', border: '1px solid var(--border-color)', transition: '0.3s' };
 
 export default MetasFullScreen;

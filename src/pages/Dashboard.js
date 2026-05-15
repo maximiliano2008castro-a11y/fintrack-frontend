@@ -14,12 +14,22 @@ import {
     FaShieldAlt, FaCheckCircle, FaExclamationCircle, FaPlus, 
     FaUserEdit, FaTimes, FaCalendarAlt, FaTrash, FaLightbulb,
     FaChevronUp, FaChevronDown, FaExclamationTriangle, FaHistory, FaSave,
-    FaBullseye, FaEdit, FaPiggyBank, FaLock, FaSyncAlt, FaGamepad, FaUserTimes
+    FaBullseye, FaEdit, FaPiggyBank, FaLock, FaSyncAlt, FaGamepad, FaUserTimes, FaMoon, FaSun
 } from 'react-icons/fa';
 
 const Dashboard = () => {
     const navigate = useNavigate();
     
+    // 💡 ESTADO PARA EL MODO OSCURO (Recuerda la preferencia del usuario)
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        return localStorage.getItem('theme') === 'dark';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        document.body.style.backgroundColor = isDarkMode ? '#0b0f19' : '#f4f7f6';
+    }, [isDarkMode]);
+
     const [isLoading, setIsLoading] = useState(true);
     const [isFirstTime, setIsFirstTime] = useState(false); 
     const [showTutorial, setShowTutorial] = useState(false); 
@@ -110,16 +120,11 @@ const Dashboard = () => {
         return "OK";
     };
 
-    // 🟢 1. OBTENER DATOS DE LA NUBE
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userEmail = localStorage.getItem('userEmail');
         
-        if (!token || !userEmail) { 
-            navigate('/'); 
-            return; 
-        }
-        
+        if (!token || !userEmail) { navigate('/'); return; }
         setEmail(userEmail);
 
         const fetchCloudData = async () => {
@@ -152,7 +157,6 @@ const Dashboard = () => {
                     setIsFirstTime(true);
                 }
             } catch (error) {
-                console.error("Error al descargar datos de la nube:", error);
                 alert("Error de conexión con la nube. Mostrando datos locales de respaldo.");
                 setIsFirstTime(true); 
             } finally {
@@ -163,7 +167,6 @@ const Dashboard = () => {
         fetchCloudData();
     }, [navigate]);
 
-    // 🟢 2. GUARDAR DATOS BIENVENIDA
     const handleFinalizarBienvenida = async (datos) => {
         setIsLoading(true);
         const financialDataObj = {
@@ -186,14 +189,12 @@ const Dashboard = () => {
             setIngresos(datos.ingresos); setCajones(datos.cajones); setOrdenCajones(datos.ordenCajones);
             setIsFirstTime(false); setShowTutorial(true); 
         } catch (error) {
-            console.error("Error al guardar en la nube:", error);
             alert("No se pudo guardar en la nube. Intenta de nuevo.");
         } finally {
             setIsLoading(false);
         }
     };
 
-    // 🟢 3. AUTOGUARDADO EN LA NUBE CONTINUO
     useEffect(() => {
         if (!email || isFirstTime || isLoading) return;
 
@@ -212,16 +213,12 @@ const Dashboard = () => {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, financialData: financialDataObj })
                 });
-            } catch (error) { console.error("Error en autoguardado en la nube:", error); }
+            } catch (error) {}
         };
 
         const delaySync = setTimeout(() => { syncToCloud(); }, 1000);
         return () => clearTimeout(delaySync);
     }, [saldoActual, cajones, ordenCajones, boveda, cajaFuerte, historial, eventosCalendario, userName, fechaNacimiento, pinSeguridad, cicloMaestro, diaInicioCiclo, ultimaFechaReinicio, ingresos, email, isFirstTime, isLoading]);
-
-    // =====================================
-    // LÓGICA FINANCIERA Y CICLOS
-    // =====================================
 
     useEffect(() => {
         if (isLoading || isFirstTime || !cicloMaestro) return;
@@ -322,21 +319,12 @@ const Dashboard = () => {
                 if (window.prompt(`🔒 Ingresa NIP:`) !== pinSeguridad) return alert('❌ NIP Incorrecto.'); 
                 if (!window.confirm(`¿Seguro que quieres eliminar tu Fondo de Emergencia?`)) return;
             }
-            
             if (boveda > 0) {
                 let accion = '2'; 
-                if (!autoRefund) {
-                    accion = window.prompt(`Tienes $${boveda.toLocaleString()} acumulados en tu Bóveda.\n\nEscribe '1' si ya te GASTASTE ese dinero (Emergencia real).\nEscribe '2' para regresar el dinero a la cascada.`);
-                }
-                
-                if (accion === '1') {
-                    registrarEnHistorial('Fondo de Emergencia Gastado', boveda, 'gasto', saldoActual, saldoActual);
-                    setBoveda(0);
-                } else if (accion === '2') {
-                    registrarEnHistorial('Reembolso Fondo Emergencia', boveda, 'pago', saldoActual, saldoActual + boveda);
-                    setSaldoActual(p => p + boveda);
-                    setBoveda(0);
-                } else return alert('❌ Cancelado.');
+                if (!autoRefund) accion = window.prompt(`Tienes $${boveda.toLocaleString()} acumulados en tu Bóveda.\n\nEscribe '1' si ya te GASTASTE ese dinero (Emergencia real).\nEscribe '2' para regresar el dinero a la cascada.`);
+                if (accion === '1') { registrarEnHistorial('Fondo de Emergencia Gastado', boveda, 'gasto', saldoActual, saldoActual); setBoveda(0); } 
+                else if (accion === '2') { registrarEnHistorial('Reembolso Fondo Emergencia', boveda, 'pago', saldoActual, saldoActual + boveda); setSaldoActual(p => p + boveda); setBoveda(0); } 
+                else return alert('❌ Cancelado.');
             }
             const nC = { ...cajones }; delete nC[nombre]; setCajones(nC);
             setOrdenCajones(prev => prev.filter(n => n !== nombre));
@@ -376,17 +364,14 @@ const Dashboard = () => {
             let esExterno = false;
             if (monto > saldoActual) {
                 const conf = window.confirm(`❌ No tienes $${monto} en tu saldo físico disponible ($${saldoActual.toLocaleString()}).\n\n¿Tienes este dinero en otra parte (ej. en efectivo o en otra cuenta) y quieres sumarlo a la meta sin afectar tu cascada actual?`);
-                if(!conf) return;
-                esExterno = true;
+                if(!conf) return; esExterno = true;
             }
-            
             registrarEnHistorial(esExterno ? `Abono externo a ${cleanName}` : `Abono a ${cleanName}`, monto, esExterno ? 'pago' : 'gasto', saldoActual, esExterno ? saldoActual : saldoActual - monto);
             if (!esExterno) setSaldoActual(p => p - monto);
             setCajones(prev => ({ ...prev, [nombre]: { ...prev[nombre], acumulado: (prev[nombre].acumulado || 0) + monto } }));
         } else {
             const max = cajones[nombre].acumulado || 0;
             if (monto > max) return alert('❌ No tienes tanto dinero acumulado en esta meta.');
-            
             registrarEnHistorial(`Retiro de ${cleanName}`, monto, 'pago', saldoActual, saldoActual + monto);
             setSaldoActual(p => p + monto);
             setCajones(prev => ({ ...prev, [nombre]: { ...prev[nombre], acumulado: (prev[nombre].acumulado || 0) - monto } }));
@@ -416,11 +401,8 @@ const Dashboard = () => {
         if (window.confirm(`¿Asegurar $${montoCajon.toLocaleString()} del cajón "${nombreCajon}" en tu ${destino}?`)) {
             const nC = { ...cajones };
             if (!['Gastos Fijos', 'Gastos Variables', 'Ahorro', 'Deuda'].includes(nombreCajon) && !esEmergencia) { 
-                delete nC[nombreCajon]; 
-                setOrdenCajones(p => p.filter(n => n !== nombreCajon)); 
-            } else {
-                nC[nombreCajon] = { ...nC[nombreCajon], aseguradoEnCiclo: true };
-            }
+                delete nC[nombreCajon]; setOrdenCajones(p => p.filter(n => n !== nombreCajon)); 
+            } else { nC[nombreCajon] = { ...nC[nombreCajon], aseguradoEnCiclo: true }; }
             setCajones(nC);
             registrarEnHistorial(`Asegurado en ${destino}: ${nombreCajon}`, montoCajon, 'gasto', saldoActual, saldoActual - montoCajon); 
             setSaldoActual(p => p - montoCajon); 
@@ -497,7 +479,6 @@ const Dashboard = () => {
         }
     };
 
-    // 💡 SOLUCIÓN: Agregamos la función crearReto faltante
     const crearReto = (nom, cuotaReal, numCiclos) => {
         if (!nom) return alert('Ponle nombre a tu reto.');
         const fullName = `Reto: ${nom} (${numCiclos} ciclos)`;
@@ -518,9 +499,7 @@ const Dashboard = () => {
     };
 
     const agregarCajonDesdeMetas = (nombre, monto, frecuencia, metaTotal = 0) => {
-        if (cajones[nombre]) {
-            return alert(`❌ Ya tienes activo el cajón "${nombre}". Si quieres reconfigurarlo, elimínalo primero de tu Cascada.`);
-        }
+        if (cajones[nombre]) return alert(`❌ Ya tienes activo el cajón "${nombre}". Si quieres reconfigurarlo, elimínalo primero de tu Cascada.`);
         setCajones(prev => ({ ...prev, [nombre]: { monto, frecuencia, acumulado: 0, esRetoPagado: false, metaTotal } }));
         setOrdenCajones(prev => { if (!prev.includes(nombre)) return [...prev, nombre]; return prev; }); 
         setIsMetasOpen(false); setIsEmergenciaOpen(false);
@@ -541,42 +520,24 @@ const Dashboard = () => {
         setIsEditMontoOpen(true);
     };
 
-    const handleSubGastoChange = (index, field, value) => {
-        const nuevos = [...subGastos];
-        nuevos[index][field] = value;
-        setSubGastos(nuevos);
-    };
+    const handleSubGastoChange = (index, field, value) => { const nuevos = [...subGastos]; nuevos[index][field] = value; setSubGastos(nuevos); };
     const addSubGasto = () => setSubGastos([...subGastos, { nombre: '', monto: '', frecuencia: 'Mensual' }]);
     const removeSubGasto = (index) => setSubGastos(subGastos.filter((_, i) => i !== index));
 
     const aplicarSubGastos = () => {
         let total = 0;
-        subGastos.forEach(sub => {
-            if (sub.monto) total += calcularAcople(sub.monto, sub.frecuencia, editMontoForm.frecuencia);
-        });
+        subGastos.forEach(sub => { if (sub.monto) total += calcularAcople(sub.monto, sub.frecuencia, editMontoForm.frecuencia); });
         setEditMontoForm({ ...editMontoForm, monto: total.toFixed(2) });
     };
 
     const guardarEdicionMonto = () => {
         if (!editMontoForm.monto || parseFloat(editMontoForm.monto) <= 0) return alert("Monto inválido.");
-        
-        let nuevoNombre = editMontoForm.nombre.trim();
-        const nombreViejo = editMontoForm.nombreOriginal;
-
-        if (nombreViejo.startsWith('Ahorro')) {
-            if (!nuevoNombre.toLowerCase().includes('ahorro')) nuevoNombre = 'Ahorro ' + nuevoNombre;
-        }
-
+        let nuevoNombre = editMontoForm.nombre.trim(); const nombreViejo = editMontoForm.nombreOriginal;
+        if (nombreViejo.startsWith('Ahorro')) { if (!nuevoNombre.toLowerCase().includes('ahorro')) nuevoNombre = 'Ahorro ' + nuevoNombre; }
         if (nuevoNombre !== nombreViejo) {
             if (cajones[nuevoNombre]) return alert('❌ Ya existe un cajón con ese nombre.');
-            const nC = { ...cajones };
-            nC[nuevoNombre] = { ...nC[nombreViejo], monto: parseFloat(editMontoForm.monto), frecuencia: editMontoForm.frecuencia };
-            delete nC[nombreViejo];
-            setCajones(nC);
-            const nO = [...ordenCajones];
-            const idx = nO.indexOf(nombreViejo);
-            if (idx !== -1) nO[idx] = nuevoNombre;
-            setOrdenCajones(nO);
+            const nC = { ...cajones }; nC[nuevoNombre] = { ...nC[nombreViejo], monto: parseFloat(editMontoForm.monto), frecuencia: editMontoForm.frecuencia }; delete nC[nombreViejo];
+            setCajones(nC); const nO = [...ordenCajones]; const idx = nO.indexOf(nombreViejo); if (idx !== -1) nO[idx] = nuevoNombre; setOrdenCajones(nO);
         } else {
             setCajones(prev => ({ ...prev, [nuevoNombre]: { ...prev[nuevoNombre], monto: parseFloat(editMontoForm.monto), frecuencia: editMontoForm.frecuencia } }));
         }
@@ -613,9 +574,7 @@ const Dashboard = () => {
             if (profileForm.password !== profileForm.confirmPassword) return alert("❌ Las contraseñas no coinciden.");
         }
         if (profileForm.pin && (profileForm.pin.length !== 4 || profileForm.pin !== profileForm.confirmPin)) return alert("❌ NIP inválido.");
-        setUserName(profileForm.nombre); 
-        if (profileForm.fechaNacimiento) setFechaNacimiento(profileForm.fechaNacimiento); 
-        if (profileForm.pin) setPinSeguridad(profileForm.pin);
+        setUserName(profileForm.nombre); if (profileForm.fechaNacimiento) setFechaNacimiento(profileForm.fechaNacimiento); if (profileForm.pin) setPinSeguridad(profileForm.pin);
         setIsEditProfileOpen(false); alert("✅ Perfil actualizado. Se sincronizará automáticamente con la nube.");
     };
 
@@ -633,32 +592,14 @@ const Dashboard = () => {
             estadoCajones.push({ nombre: n, meta: meta, llenado: meta, porcentaje: 100, esSobrante: false, completado: false }); 
         } 
         else { 
-            let llenado = 0;
-            let porcentaje = 100;
-            
-            let estaCompletadoTotalmente = false;
-            if (n.startsWith('Meta:')) {
-                const match = n.match(/\(Total: (\d+(\.\d+)?)\)/);
-                const total = match ? parseFloat(match[1]) : 0;
-                if (total > 0 && (cajones[n].acumulado || 0) >= total) estaCompletadoTotalmente = true;
-            } else if (n.startsWith('Reto:')) {
-                const match = n.match(/\((\d+)\s*ciclos\)/);
-                if (match) {
-                    const ciclosTotal = parseInt(match[1]);
-                    if (Math.floor((cajones[n].acumulado || 0) / cajones[n].monto) >= ciclosTotal) estaCompletadoTotalmente = true;
-                }
-            } else if (n === 'Fondo de Emergencia') {
-                if (cajones[n].metaTotal > 0 && boveda >= cajones[n].metaTotal) estaCompletadoTotalmente = true;
-            }
+            let llenado = 0; let porcentaje = 100; let estaCompletadoTotalmente = false;
+            if (n.startsWith('Meta:')) { const match = n.match(/\(Total: (\d+(\.\d+)?)\)/); const total = match ? parseFloat(match[1]) : 0; if (total > 0 && (cajones[n].acumulado || 0) >= total) estaCompletadoTotalmente = true; } 
+            else if (n.startsWith('Reto:')) { const match = n.match(/\((\d+)\s*ciclos\)/); if (match) { const ciclosTotal = parseInt(match[1]); if (Math.floor((cajones[n].acumulado || 0) / cajones[n].monto) >= ciclosTotal) estaCompletadoTotalmente = true; } } 
+            else if (n === 'Fondo de Emergencia') { if (cajones[n].metaTotal > 0 && boveda >= cajones[n].metaTotal) estaCompletadoTotalmente = true; }
 
-            if (estaCompletadoTotalmente) {
-                estadoCajones.push({ nombre: n, meta, llenado: 0, porcentaje: 100, esSobrante: false, completado: true });
-            } else {
-                if (!cajones[n].esRetoPagado && !cajones[n].aseguradoEnCiclo) {
-                    llenado = Math.min(Math.max(0, saldoRestante), meta); 
-                    saldoRestante -= llenado; 
-                    porcentaje = meta > 0 ? Math.min((llenado / meta) * 100, 100) : 100;
-                }
+            if (estaCompletadoTotalmente) { estadoCajones.push({ nombre: n, meta, llenado: 0, porcentaje: 100, esSobrante: false, completado: true }); } 
+            else {
+                if (!cajones[n].esRetoPagado && !cajones[n].aseguradoEnCiclo) { llenado = Math.min(Math.max(0, saldoRestante), meta); saldoRestante -= llenado; porcentaje = meta > 0 ? Math.min((llenado / meta) * 100, 100) : 100; }
                 estadoCajones.push({ nombre: n, meta, llenado, porcentaje: porcentaje, esSobrante: false, completado: false }); 
             }
         }
@@ -671,21 +612,81 @@ const Dashboard = () => {
     const sobranteCiclo = totalIngresosCiclo - totalAsignadoBase;
 
     const totalAcumuladoRetos = Object.keys(cajones).reduce((acc, key) => {
-        if (key.startsWith('Reto:') || key.includes('Capricho:')) {
-            return acc + (cajones[key].acumulado || 0);
-        }
+        if (key.startsWith('Reto:') || key.includes('Capricho:')) return acc + (cajones[key].acumulado || 0);
         return acc;
     }, 0);
 
-    if (isLoading) return <div style={{height: '100vh', backgroundColor: '#f4f7f6', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><h2 style={{color: '#007bff'}}>Sincronizando con TiDB... ☁️</h2></div>;
+    if (isLoading) return <div style={{height: '100vh', backgroundColor: isDarkMode ? '#0b0f19' : '#f4f7f6', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><h2 style={{color: '#3b82f6'}}>Sincronizando con TiDB... ☁️</h2></div>;
     if (isFirstTime) return <div className="app-wrapper" style={appWrapperStyle}><BienvenidaFullScreen onFinish={handleFinalizarBienvenida} /></div>;
 
     return (
-        <div className="app-wrapper" style={appWrapperStyle}>
+        <div className={isDarkMode ? 'theme-dark app-wrapper' : 'theme-light app-wrapper'} style={appWrapperStyle}>
             <style>{`
+                .theme-light {
+                    --bg-main: #f4f7f6;
+                    --bg-card: #fff;
+                    --bg-sidebar: #fff;
+                    --bg-secondary: #f8f9fa;
+                    --bg-tertiary: #f1f2f6;
+                    --text-main: #2f3542;
+                    --text-muted: #747d8c;
+                    --text-light: #a4b0be;
+                    --border-color: #e1e5ee;
+                    --border-light: #dfe6e9;
+                    --primary: #007bff;
+                    --primary-light: #eef3ff;
+                    --success: #28a745;
+                    --success-light: #e6f4ea;
+                    --success-alt: #10ac84;
+                    --danger: #dc3545;
+                    --danger-light: #ffebee;
+                    --danger-alt: #ee5253;
+                    --warning: #ffc107;
+                    --warning-light: #fff9e6;
+                    --pink: #e83e8c;
+                    --pink-light: #fce3ed;
+                    --overlay: rgba(0,0,0,0.5);
+                    --main-card-bg: linear-gradient(135deg, #2b323c 0%, #1e242b 100%);
+                    --main-card-text: #fff;
+                    --card-shadow: 0 5px 25px rgba(0,0,0,0.02);
+                    --modal-shadow: 0 25px 50px rgba(0,0,0,0.2);
+                    --title-gradient: #2f3542;
+                }
+
+                .theme-dark {
+                    --bg-main: #0b0f19;
+                    --bg-card: #151b2b;
+                    --bg-sidebar: #151b2b;
+                    --bg-secondary: #0b0f19;
+                    --bg-tertiary: #1e293b;
+                    --text-main: #f1f5f9;
+                    --text-muted: #94a3b8;
+                    --text-light: #64748b;
+                    --border-color: #2a3241;
+                    --border-light: #334155;
+                    --primary: #3b82f6;
+                    --primary-light: rgba(59, 130, 246, 0.15);
+                    --success: #10ac84;
+                    --success-light: rgba(16, 172, 132, 0.15);
+                    --success-alt: #10ac84;
+                    --danger: #ef4444;
+                    --danger-light: rgba(239, 68, 68, 0.15);
+                    --danger-alt: #ef4444;
+                    --warning: #ffb142;
+                    --warning-light: rgba(255, 177, 66, 0.15);
+                    --pink: #e83e8c;
+                    --pink-light: rgba(232, 62, 140, 0.15);
+                    --overlay: rgba(0,0,0,0.7);
+                    --main-card-bg: linear-gradient(135deg, #151b2b 0%, #0b0f19 100%);
+                    --main-card-text: #f1f5f9;
+                    --card-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                    --modal-shadow: 0 25px 50px rgba(0,0,0,0.8);
+                    --title-gradient: linear-gradient(135deg, #f1f5f9 0%, #3b82f6 100%);
+                }
+
                 @media (max-width: 768px) {
                     .app-wrapper { flex-direction: column !important; }
-                    .sidebar { position: relative !important; width: 100% !important; height: auto !important; order: 2 !important; border-right: none !important; border-top: 1px solid #e1e5ee !important; padding: 20px !important; overflow-y: visible !important; }
+                    .sidebar { position: relative !important; width: 100% !important; height: auto !important; order: 2 !important; border-right: none !important; border-top: 1px solid var(--border-color) !important; padding: 20px !important; overflow-y: visible !important; }
                     .main-content { margin-left: 0 !important; padding: 20px !important; order: 1 !important; }
                     .btn-group { flex-direction: column !important; gap: 10px !important; }
                     .stats-grid { grid-template-columns: 1fr !important; gap: 15px !important; margin-bottom: 25px !important; }
@@ -697,15 +698,21 @@ const Dashboard = () => {
                     .flex-col-mobile { flex-direction: column !important; align-items: stretch !important; gap: 10px; }
                     .cajon-header-mobile { flex-direction: column !important; align-items: flex-start !important; }
                 }
+                
+                @keyframes pulseGlow {
+                    0% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
+                    50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6); }
+                    100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
+                }
             `}</style>
 
             {isCorteModalOpen && (
                 <div style={{...overlayStyle, zIndex: 9999}}>
                     <div className="modal-center" style={{...modalCenterStyle, width: '450px', maxHeight: '85vh', overflowY: 'auto', zIndex: 10000}}>
                         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                            <FaSyncAlt style={{ fontSize: '40px', color: '#007bff', marginBottom: '10px' }} />
-                            <h2 style={{ margin: '0 0 10px 0', color: '#2f3542' }}>¡Nuevo Ciclo!</h2>
-                            <p style={{ margin: 0, color: '#747d8c', fontSize: '14px' }}>
+                            <FaSyncAlt style={{ fontSize: '40px', color: 'var(--primary)', marginBottom: '10px' }} />
+                            <h2 style={{ margin: '0 0 10px 0', color: 'var(--text-main)' }}>¡Nuevo Ciclo!</h2>
+                            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px' }}>
                                 {cajonesCorte.length > 0 ? "Primero, hagamos cuentas de los cajones que quedaron con dinero." : "Es momento de iniciar tu nueva cascada."}
                             </p>
                         </div>
@@ -713,11 +720,11 @@ const Dashboard = () => {
                             {cajonesCorte.map((c, i) => {
                                 if (c.procesado) return null;
                                 return (
-                                    <div key={i} style={{ padding: '15px', borderRadius: '15px', border: '1px solid #e1e5ee', background: '#f8f9fa' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}><b style={{ color: '#2f3542' }}>{c.nombre}</b><b style={{ color: '#007bff' }}>${c.llenado.toLocaleString()}</b></div>
+                                    <div key={i} style={{ padding: '15px', borderRadius: '15px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}><b style={{ color: 'var(--text-main)' }}>{c.nombre}</b><b style={{ color: 'var(--primary)' }}>${c.llenado.toLocaleString()}</b></div>
                                         <div className="btn-group" style={{ display: 'flex', gap: '10px' }}>
-                                            <button onClick={() => procesarCorteCajon(i, 'gastar')} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #dc3545', background: '#ffebee', color: '#dc3545', fontWeight: 'bold', cursor: 'pointer' }}>💸 Ya lo pagué</button>
-                                            <button onClick={() => procesarCorteCajon(i, 'sobrante')} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #28a745', background: '#e6f4ea', color: '#28a745', fontWeight: 'bold', cursor: 'pointer' }}>🔄 No lo gasté</button>
+                                            <button onClick={() => procesarCorteCajon(i, 'gastar')} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--danger)', background: 'var(--danger-light)', color: 'var(--danger)', fontWeight: 'bold', cursor: 'pointer' }}>💸 Ya lo pagué</button>
+                                            <button onClick={() => procesarCorteCajon(i, 'sobrante')} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--success)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 'bold', cursor: 'pointer' }}>🔄 No lo gasté</button>
                                         </div>
                                     </div>
                                 );
@@ -725,14 +732,14 @@ const Dashboard = () => {
                         </div>
                         {cajonesCorte.every(c => c.procesado) && (
                             <div style={{ marginTop: '20px', animation: 'fadeIn 0.3s ease-in' }}>
-                                <div style={{ background: '#eef3ff', padding: '20px', borderRadius: '15px', textAlign: 'center', marginBottom: '15px', border: '1px solid #007bff' }}>
-                                    <h4 style={{ margin: '0 0 10px 0', color: '#007bff' }}>¿Con cuánto dinero inicias este ciclo?</h4>
+                                <div style={{ background: 'var(--primary-light)', padding: '20px', borderRadius: '15px', textAlign: 'center', marginBottom: '15px', border: '1px solid var(--primary)' }}>
+                                    <h4 style={{ margin: '0 0 10px 0', color: 'var(--primary)' }}>¿Con cuánto dinero inicias este ciclo?</h4>
                                     <div style={{position: 'relative'}}>
-                                        <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold', color: '#007bff' }}>$</span>
-                                        <input type="number" min="0" onKeyDown={blockInvalidChars} value={ingresoPendienteCorte} onChange={(e) => setIngresoPendienteCorte(e.target.value)} style={{...inputModalStyle, paddingLeft: '35px', margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#007bff', borderColor: '#007bff'}} />
+                                        <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold', color: 'var(--primary)' }}>$</span>
+                                        <input type="number" min="0" onKeyDown={blockInvalidChars} value={ingresoPendienteCorte} onChange={(e) => setIngresoPendienteCorte(e.target.value)} style={{...inputModalStyle, paddingLeft: '35px', margin: 0, fontSize: '20px', fontWeight: 'bold', color: 'var(--primary)', borderColor: 'var(--primary)'}} />
                                     </div>
                                 </div>
-                                <button onClick={finalizarCorte} style={{ ...btnMainAdd, background: '#007bff', width: '100%' }}>Iniciar Ciclo con ${parseFloat(ingresoPendienteCorte || 0).toLocaleString()}</button>
+                                <button onClick={finalizarCorte} style={{ ...btnMainAdd, background: 'var(--primary)', width: '100%' }}>Iniciar Ciclo con ${parseFloat(ingresoPendienteCorte || 0).toLocaleString()}</button>
                             </div>
                         )}
                     </div>
@@ -746,8 +753,8 @@ const Dashboard = () => {
             {isEditMontoOpen && (
                 <div className="modal-center" style={{ ...modalCenterStyle, width: '420px', maxHeight: '90vh', overflowY: 'auto' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ margin: 0, color: '#2f3542', fontSize: '18px' }}>Editar <span style={{color: '#007bff'}}>{editMontoForm.nombreOriginal}</span></h3>
-                        <FaTimes onClick={() => setIsEditMontoOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: '#a4b0be' }} />
+                        <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '18px' }}>Editar <span style={{color: 'var(--primary)'}}>{editMontoForm.nombreOriginal}</span></h3>
+                        <FaTimes onClick={() => setIsEditMontoOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: 'var(--text-light)' }} />
                     </div>
                     
                     {editMontoForm.nombreOriginal.startsWith('Ahorro') && (
@@ -758,75 +765,71 @@ const Dashboard = () => {
                     )}
 
                     <label style={labelModalStyle}>Frecuencia (Plazo de la meta)</label>
-                    <select value={editMontoForm.frecuencia} onChange={(e) => setEditMontoForm({...editMontoForm, frecuencia: e.target.value})} disabled={editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')} style={{...inputModalStyle, backgroundColor: (editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')) ? '#e9ecef' : '#f8f9fa', cursor: (editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')) ? 'not-allowed' : 'pointer'}}>
+                    <select value={editMontoForm.frecuencia} onChange={(e) => setEditMontoForm({...editMontoForm, frecuencia: e.target.value})} disabled={editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')} style={{...inputModalStyle, backgroundColor: (editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')) ? 'var(--bg-tertiary)' : 'var(--bg-secondary)', cursor: (editMontoForm.nombreOriginal.startsWith('Meta:') || editMontoForm.nombreOriginal.startsWith('Reto:')) ? 'not-allowed' : 'pointer'}}>
                         <option>Único</option><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Anual</option>
                     </select>
 
                     <label style={labelModalStyle}>Monto Total de la Meta</label>
                     <div style={{ position: 'relative', marginBottom: '15px' }}>
-                        <span style={{ position: 'absolute', left: '15px', top: '15px', fontWeight: 'bold', color: '#28a745' }}>$</span>
+                        <span style={{ position: 'absolute', left: '15px', top: '15px', fontWeight: 'bold', color: 'var(--success)' }}>$</span>
                         <input type="number" min="0" onKeyDown={blockInvalidChars} value={editMontoForm.monto} onChange={(e) => setEditMontoForm({...editMontoForm, monto: e.target.value})} style={{ ...inputModalStyle, paddingLeft: '35px', margin: 0, fontSize: '18px', fontWeight: 'bold' }} />
                     </div>
 
                     {(editMontoForm.nombreOriginal === 'Gastos Fijos' || editMontoForm.nombreOriginal === 'Gastos Variables') && (
-                        <div style={{ borderTop: '1px dashed #e1e5ee', marginTop: '10px', paddingTop: '20px' }}>
-                            <h4 style={{ margin: '0 0 15px 0', color: '#007bff', fontSize: '14px' }}>Conversión a {editMontoForm.frecuencia}</h4>
+                        <div style={{ borderTop: '1px dashed var(--border-color)', marginTop: '10px', paddingTop: '20px' }}>
+                            <h4 style={{ margin: '0 0 15px 0', color: 'var(--primary)', fontSize: '14px' }}>Conversión a {editMontoForm.frecuencia}</h4>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {subGastos.map((sub, i) => (
                                     <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <input type="text" placeholder="Ej. Luz" value={sub.nombre} onChange={(e) => handleSubGastoChange(i, 'nombre', e.target.value)} style={{...inputModalStyle, flex: 2, margin: 0, padding: '10px', fontSize: '14px', background: '#fff', border: '1px solid #dfe6e9'}} />
+                                        <input type="text" placeholder="Ej. Luz" value={sub.nombre} onChange={(e) => handleSubGastoChange(i, 'nombre', e.target.value)} style={{...inputModalStyle, flex: 2, margin: 0, padding: '10px', fontSize: '14px', background: 'var(--bg-card)', border: '1px solid var(--border-light)'}} />
                                         <div style={{position: 'relative', flex: 1.5}}>
-                                            <span style={{position: 'absolute', left: '10px', top: '10px', fontSize: '14px', color: '#a4b0be'}}>$</span>
-                                            <input type="number" min="0" onKeyDown={blockInvalidChars} value={sub.monto} onChange={(e) => handleSubGastoChange(i, 'monto', e.target.value)} style={{...inputModalStyle, width: '100%', margin: 0, padding: '10px 10px 10px 25px', fontSize: '14px', background: '#fff', border: '1px solid #dfe6e9'}} />
+                                            <span style={{position: 'absolute', left: '10px', top: '10px', fontSize: '14px', color: 'var(--text-light)'}}>$</span>
+                                            <input type="number" min="0" onKeyDown={blockInvalidChars} value={sub.monto} onChange={(e) => handleSubGastoChange(i, 'monto', e.target.value)} style={{...inputModalStyle, width: '100%', margin: 0, padding: '10px 10px 10px 25px', fontSize: '14px', background: 'var(--bg-card)', border: '1px solid var(--border-light)'}} />
                                         </div>
-                                        <select value={sub.frecuencia} onChange={(e) => handleSubGastoChange(i, 'frecuencia', e.target.value)} style={{...inputModalStyle, flex: 1.5, margin: 0, padding: '10px', fontSize: '14px', background: '#fff', border: '1px solid #dfe6e9'}}>
-                                            <option value="Diario">Día</option>
-                                            <option value="Semanal">Semana</option>
-                                            <option value="Quincenal">Quincena</option>
-                                            <option value="Mensual">Mes</option>
-                                            <option value="Anual">Año</option>
+                                        <select value={sub.frecuencia} onChange={(e) => handleSubGastoChange(i, 'frecuencia', e.target.value)} style={{...inputModalStyle, flex: 1.5, margin: 0, padding: '10px', fontSize: '14px', background: 'var(--bg-card)', border: '1px solid var(--border-light)'}}>
+                                            <option value="Diario">Día</option><option value="Semanal">Semana</option><option value="Quincenal">Quincena</option><option value="Mensual">Mes</option><option value="Anual">Año</option>
                                         </select>
-                                        {subGastos.length > 1 && <FaTimes onClick={() => removeSubGasto(i)} style={{ color: '#a4b0be', cursor: 'pointer', flexShrink: 0, padding: '5px', fontSize: '18px' }} />}
+                                        {subGastos.length > 1 && <FaTimes onClick={() => removeSubGasto(i)} style={{ color: 'var(--text-light)', cursor: 'pointer', flexShrink: 0, padding: '5px', fontSize: '18px' }} />}
                                     </div>
                                 ))}
-                                <span onClick={addSubGasto} style={{ color: '#007bff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginTop: '5px', display: 'inline-block' }}>+ Añadir fila</span>
-                                <button onClick={aplicarSubGastos} style={{ background: '#007bff', color: '#fff', border: 'none', padding: '15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', marginTop: '10px', width: '100%' }}>Aplicar Total</button>
+                                <span onClick={addSubGasto} style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginTop: '5px', display: 'inline-block' }}>+ Añadir fila</span>
+                                <button onClick={aplicarSubGastos} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px', marginTop: '10px', width: '100%' }}>Aplicar Total</button>
                             </div>
                         </div>
                     )}
 
                     {editMontoForm.nombreOriginal !== 'Gastos Fijos' && editMontoForm.nombreOriginal !== 'Gastos Variables' && (
-                         <button onClick={guardarEdicionMonto} style={{ ...btnMainAdd, width: '100%', marginTop: '20px' }}><FaSave /> Actualizar Cajón</button>
+                         <button onClick={guardarEdicionMonto} style={{ ...btnMainAdd, width: '100%', marginTop: '20px', background: 'var(--primary)' }}><FaSave /> Actualizar Cajón</button>
                     )}
                     {(editMontoForm.nombreOriginal === 'Gastos Fijos' || editMontoForm.nombreOriginal === 'Gastos Variables') && (
-                         <button onClick={guardarEdicionMonto} style={{ ...btnMainAdd, background: '#28a745', width: '100%', marginTop: '10px' }}><FaSave /> Guardar Cambios</button>
+                         <button onClick={guardarEdicionMonto} style={{ ...btnMainAdd, background: 'var(--success)', width: '100%', marginTop: '10px' }}><FaSave /> Guardar Cambios</button>
                     )}
                 </div>
             )}
 
             {isEditProfileOpen && (
                 <div className="modal-center" style={{...modalCenterStyle, width: '420px', maxHeight: '90vh', overflowY: 'auto'}}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><h3 style={{ margin: 0, color: '#2f3542', display: 'flex', alignItems: 'center', gap: '8px' }}><FaUserEdit /> Editar Perfil</h3><FaTimes onClick={() => setIsEditProfileOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: '#a4b0be' }} /></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><h3 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}><FaUserEdit /> Editar Perfil</h3><FaTimes onClick={() => setIsEditProfileOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: 'var(--text-light)' }} /></div>
                     <label style={labelModalStyle}>Nombre</label><input type="text" value={profileForm.nombre} onChange={(e) => setProfileForm({...profileForm, nombre: e.target.value})} style={inputModalStyle} />
-                    <label style={labelModalStyle}>Correo</label><input type="email" value={profileForm.correo} disabled style={{...inputModalStyle, backgroundColor:'#e9ecef', color:'#6c757d', cursor:'not-allowed'}} />
+                    <label style={labelModalStyle}>Correo</label><input type="email" value={profileForm.correo} disabled style={{...inputModalStyle, backgroundColor:'var(--bg-tertiary)', color:'var(--text-muted)', cursor:'not-allowed'}} />
                     <label style={labelModalStyle}>Fecha de Nacimiento</label><input type="date" value={profileForm.fechaNacimiento} onChange={(e) => setProfileForm({...profileForm, fechaNacimiento: e.target.value})} style={inputModalStyle} />
-                    <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '15px', border: '1px solid #e1e5ee', marginBottom: '20px', marginTop: '10px' }}>
-                        <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: '#747d8c' }}>Deja en blanco si no deseas cambiar contraseña o NIP.</p>
+                    <div style={{ padding: '15px', background: 'var(--bg-secondary)', borderRadius: '15px', border: '1px solid var(--border-color)', marginBottom: '20px', marginTop: '10px' }}>
+                        <p style={{ margin: '0 0 15px 0', fontSize: '12px', color: 'var(--text-muted)' }}>Deja en blanco si no deseas cambiar contraseña o NIP.</p>
                         <label style={labelModalStyle}>Nueva Contraseña</label><input type="password" value={profileForm.password} onChange={(e) => setProfileForm({...profileForm, password: e.target.value})} style={{...inputModalStyle, marginBottom: profileForm.password ? '10px' : '15px'}} />
-                        {profileForm.password && ( <><div style={{fontSize:'11px', color:'#666', marginBottom:'10px'}}>Requiere: Mín. 8 caracteres, 1 MAYÚSCULA, 1 minúscula, 1 número, 1 símbolo.</div><label style={{...labelModalStyle, color: '#007bff'}}>Confirmar Contraseña</label><input type="password" value={profileForm.confirmPassword} onChange={(e) => setProfileForm({...profileForm, confirmPassword: e.target.value})} style={{...inputModalStyle, border: '1px solid #007bff'}} /></> )}
+                        {profileForm.password && ( <><div style={{fontSize:'11px', color:'var(--text-muted)', marginBottom:'10px'}}>Requiere: Mín. 8 caracteres, 1 MAYÚSCULA, 1 minúscula, 1 número, 1 símbolo.</div><label style={{...labelModalStyle, color: 'var(--primary)'}}>Confirmar Contraseña</label><input type="password" value={profileForm.confirmPassword} onChange={(e) => setProfileForm({...profileForm, confirmPassword: e.target.value})} style={{...inputModalStyle, border: '1px solid var(--primary)'}} /></> )}
                         <label style={labelModalStyle}>Nuevo NIP (4 dígitos)</label><input type="password" maxLength="4" value={profileForm.pin} onChange={(e) => setProfileForm({...profileForm, pin: e.target.value.replace(/[^0-9]/g, '')})} style={{...inputModalStyle, letterSpacing: '8px', textAlign: 'center', marginBottom: profileForm.pin ? '10px' : '0'}} />
-                        {profileForm.pin && ( <><label style={{...labelModalStyle, color: '#007bff'}}>Confirmar NIP</label><input type="password" maxLength="4" value={profileForm.confirmPin} onChange={(e) => setProfileForm({...profileForm, confirmPin: e.target.value.replace(/[^0-9]/g, '')})} style={{...inputModalStyle, letterSpacing: '8px', textAlign: 'center', border: '1px solid #007bff', margin: 0}} /></> )}
+                        {profileForm.pin && ( <><label style={{...labelModalStyle, color: 'var(--primary)'}}>Confirmar NIP</label><input type="password" maxLength="4" value={profileForm.confirmPin} onChange={(e) => setProfileForm({...profileForm, confirmPin: e.target.value.replace(/[^0-9]/g, '')})} style={{...inputModalStyle, letterSpacing: '8px', textAlign: 'center', border: '1px solid var(--primary)', margin: 0}} /></> )}
                     </div>
-                    <button onClick={handleGuardarPerfil} style={{ ...btnMainAdd, width: '100%' }}><FaSave /> Guardar Cambios</button>
+                    <button onClick={handleGuardarPerfil} style={{ ...btnMainAdd, background: 'var(--primary)', width: '100%' }}><FaSave /> Guardar Cambios</button>
                 </div>
             )}
 
             {isReconfigureOpen && (
                 <div className="modal-center" style={{...modalCenterStyle, width: '450px', maxHeight: '90vh', overflowY: 'auto'}}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ margin: 0, color: '#007bff', display: 'flex', alignItems: 'center', gap: '8px' }}><FaCog /> Reconfigurar Finanzas</h3>
-                        <FaTimes onClick={() => setIsReconfigureOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: '#a4b0be' }} />
+                        <h3 style={{ margin: 0, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}><FaCog /> Reconfigurar Finanzas</h3>
+                        <FaTimes onClick={() => setIsReconfigureOpen(false)} style={{ cursor: 'pointer', fontSize: '20px', color: 'var(--text-light)' }} />
                     </div>
 
                     <label style={labelModalStyle}>Saldo Físico Actual</label>
@@ -850,23 +853,23 @@ const Dashboard = () => {
                         <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                             <input type="number" min="0" onKeyDown={blockInvalidChars} value={ing.monto} onChange={(e) => handleIngresoChange(i, 'monto', e.target.value)} style={{...inputModalStyle, flex: 2, margin: 0}} />
                             <select value={ing.frecuencia} onChange={(e) => handleIngresoChange(i, 'frecuencia', e.target.value)} style={{...inputModalStyle, flex: 2, margin: 0}}><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option></select>
-                            {configForm.ingresos.length > 1 && <FaTrash onClick={() => handleRemoveIngreso(i)} style={{color: '#dc3545', cursor: 'pointer', padding: '10px'}}/>}
+                            {configForm.ingresos.length > 1 && <FaTrash onClick={() => handleRemoveIngreso(i)} style={{color: 'var(--danger)', cursor: 'pointer', padding: '10px'}}/>}
                         </div>
                     ))}
-                    <button onClick={handleAddIngreso} style={{ background: 'none', border: 'none', color: '#007bff', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '20px', padding: '5px 0' }}><FaPlus /> Añadir fuente</button>
-                    <button onClick={handleGuardarReconfiguracion} style={{ ...btnMainAdd, width: '100%' }}><FaSave /> Guardar Cambios</button>
+                    <button onClick={handleAddIngreso} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '20px', padding: '5px 0' }}><FaPlus /> Añadir fuente</button>
+                    <button onClick={handleGuardarReconfiguracion} style={{ ...btnMainAdd, background: 'var(--primary)', width: '100%' }}><FaSave /> Guardar Cambios</button>
                 </div>
             )}
 
             {isQuickEventOpen && (
                 <div className="modal-center" style={modalCenterStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><div style={badgeDayStyle}>Día {selectedDay}</div><FaTimes onClick={cerrarModalEvento} style={{ cursor: 'pointer', color: '#a4b0be', fontSize: '20px' }} /></div>
-                    <div style={typeSelectorGrid}><button onClick={() => setEventForm({...eventForm, tipo: 'pago'})} style={{ ...typeBtn, border: eventForm.tipo === 'pago' ? '2px solid #28a745' : '1px solid #e1e5ee', background: eventForm.tipo === 'pago' ? '#e6f4ea' : '#fff' }}>Cobro</button><button onClick={() => setEventForm({...eventForm, tipo: 'gasto'})} style={{ ...typeBtn, border: eventForm.tipo === 'gasto' ? '2px solid #dc3545' : '1px solid #e1e5ee', background: eventForm.tipo === 'gasto' ? '#fce8e6' : '#fff' }}>Gasto</button></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><div style={badgeDayStyle}>Día {selectedDay}</div><FaTimes onClick={cerrarModalEvento} style={{ cursor: 'pointer', color: 'var(--text-light)', fontSize: '20px' }} /></div>
+                    <div style={typeSelectorGrid}><button onClick={() => setEventForm({...eventForm, tipo: 'pago'})} style={{ ...typeBtn, border: eventForm.tipo === 'pago' ? '2px solid var(--success)' : '1px solid var(--border-color)', background: eventForm.tipo === 'pago' ? 'var(--success-light)' : 'var(--bg-secondary)', color: eventForm.tipo === 'pago' ? 'var(--success)' : 'var(--text-main)' }}>Cobro</button><button onClick={() => setEventForm({...eventForm, tipo: 'gasto'})} style={{ ...typeBtn, border: eventForm.tipo === 'gasto' ? '2px solid var(--danger)' : '1px solid var(--border-color)', background: eventForm.tipo === 'gasto' ? 'var(--danger-light)' : 'var(--bg-secondary)', color: eventForm.tipo === 'gasto' ? 'var(--danger)' : 'var(--text-main)' }}>Gasto</button></div>
                     <input type="text" placeholder="¿Qué es?" value={eventForm.nombre} onChange={(e) => setEventForm({...eventForm, nombre: e.target.value})} style={inputModalStyle} />
                     <input type="number" min="0" onKeyDown={blockInvalidChars} placeholder="Monto $" value={eventForm.monto} onChange={(e) => setEventForm({...eventForm, monto: e.target.value})} style={inputModalStyle} />
                     <select value={eventForm.frecuencia} onChange={(e) => setEventForm({...eventForm, frecuencia: e.target.value})} style={inputModalStyle}><option value="Único">Solo esta vez</option><option value="Semanal">Semanal</option><option value="Mensual">Mensual</option><option value="Anual">Anual</option></select>
-                    <button onClick={guardarEvento} style={{ ...btnMainAdd, width: '100%', marginTop: '10px' }}>{isEditing ? 'Guardar Cambios' : 'Crear Alerta'}</button>
-                    {isEditing && <button onClick={eliminarEventoTotal} style={{ ...btnMainRemove, width: '100%', marginTop: '10px', background: '#fff', color: '#dc3545', border: '1px solid #dc3545' }}><FaTrash /> Eliminar Alerta / Ejecutar</button>}
+                    <button onClick={guardarEvento} style={{ ...btnMainAdd, width: '100%', marginTop: '10px', background: 'var(--primary)' }}>{isEditing ? 'Guardar Cambios' : 'Crear Alerta'}</button>
+                    {isEditing && <button onClick={eliminarEventoTotal} style={{ ...btnMainRemove, width: '100%', marginTop: '10px', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)' }}><FaTrash /> Eliminar Alerta / Ejecutar</button>}
                 </div>
             )}
 
@@ -874,13 +877,13 @@ const Dashboard = () => {
             {isAddModalOpen && (
                 <div className="modal-center" style={{...modalCenterStyle, width: '420px'}}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ margin: 0, color: '#2f3542' }}>Nuevo Cajón</h3>
-                        <FaTimes onClick={() => setIsAddModalOpen(false)} style={{ cursor: 'pointer', color: '#a4b0be' }} />
+                        <h3 style={{ margin: 0, color: 'var(--text-main)' }}>Nuevo Cajón</h3>
+                        <FaTimes onClick={() => setIsAddModalOpen(false)} style={{ cursor: 'pointer', color: 'var(--text-light)' }} />
                     </div>
 
                     <div style={typeSelectorGrid}>
-                        <button onClick={() => setNuevoCajon({...nuevoCajon, tipo: 'Fijo'})} style={{ ...typeBtn, border: nuevoCajon.tipo === 'Fijo' ? '2px solid #007bff' : '1px solid #e1e5ee', background: nuevoCajon.tipo === 'Fijo' ? '#eef3ff' : '#fff', color: nuevoCajon.tipo === 'Fijo' ? '#007bff' : '#2f3542' }}>Cajón Fijo</button>
-                        <button onClick={() => setNuevoCajon({...nuevoCajon, tipo: 'Reto'})} style={{ ...typeBtn, border: nuevoCajon.tipo === 'Reto' ? '2px solid #e83e8c' : '1px solid #e1e5ee', background: nuevoCajon.tipo === 'Reto' ? '#fce3ed' : '#fff', color: nuevoCajon.tipo === 'Reto' ? '#e83e8c' : '#2f3542' }}>Micro-Reto</button>
+                        <button onClick={() => setNuevoCajon({...nuevoCajon, tipo: 'Fijo'})} style={{ ...typeBtn, border: nuevoCajon.tipo === 'Fijo' ? '2px solid var(--primary)' : '1px solid var(--border-color)', background: nuevoCajon.tipo === 'Fijo' ? 'var(--primary-light)' : 'var(--bg-secondary)', color: nuevoCajon.tipo === 'Fijo' ? 'var(--primary)' : 'var(--text-main)' }}>Cajón Fijo</button>
+                        <button onClick={() => setNuevoCajon({...nuevoCajon, tipo: 'Reto'})} style={{ ...typeBtn, border: nuevoCajon.tipo === 'Reto' ? '2px solid var(--pink)' : '1px solid var(--border-color)', background: nuevoCajon.tipo === 'Reto' ? 'var(--pink-light)' : 'var(--bg-secondary)', color: nuevoCajon.tipo === 'Reto' ? 'var(--pink)' : 'var(--text-main)' }}>Micro-Reto</button>
                     </div>
 
                     {nuevoCajon.tipo === 'Fijo' ? (
@@ -892,19 +895,19 @@ const Dashboard = () => {
                                     <option>Único</option><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Anual</option>
                                 </select>
                             </div>
-                            <button onClick={handleGuardarNuevoCajon} style={{ ...btnMainAdd, width: '100%', marginTop: '20px', background: '#007bff' }}>Crear Cajón Fijo</button>
+                            <button onClick={handleGuardarNuevoCajon} style={{ ...btnMainAdd, width: '100%', marginTop: '20px', background: 'var(--primary)' }}>Crear Cajón Fijo</button>
                         </>
                     ) : (
                         <>
                             <input type="text" placeholder="¿Qué capricho quieres? (Ej. Tenis)" value={nuevoCajon.nombre} onChange={(e) => setNuevoCajon({...nuevoCajon, nombre: e.target.value})} style={inputModalStyle} />
                             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                                 <div style={{flex: 1, position: 'relative'}}>
-                                    <span style={{position: 'absolute', left: '10px', top: '15px', color: '#a4b0be'}}>$</span>
+                                    <span style={{position: 'absolute', left: '10px', top: '15px', color: 'var(--text-light)'}}>$</span>
                                     <input type="number" min="0" onKeyDown={blockInvalidChars} placeholder="Costo Total" value={nuevoCajon.costoTotal} onChange={(e) => setNuevoCajon({...nuevoCajon, costoTotal: e.target.value})} style={{ ...inputModalStyle, paddingLeft: '25px', margin: 0 }} />
                                 </div>
                                 <div style={{flex: 1, position: 'relative'}}>
                                     <input type="number" min="1" onKeyDown={blockInvalidChars} placeholder="Ciclos" value={nuevoCajon.ciclos} onChange={(e) => setNuevoCajon({...nuevoCajon, ciclos: e.target.value})} style={{ ...inputModalStyle, paddingRight: '50px', margin: 0 }} />
-                                    <span style={{position: 'absolute', right: '10px', top: '15px', color: '#a4b0be', fontSize: '12px'}}>ciclos</span>
+                                    <span style={{position: 'absolute', right: '10px', top: '15px', color: 'var(--text-light)', fontSize: '12px'}}>ciclos</span>
                                 </div>
                             </div>
 
@@ -917,35 +920,35 @@ const Dashboard = () => {
                                         const ciclosViables = Math.ceil(costoT / sobranteCiclo);
                                         const cuotaViable = costoT / ciclosViables;
                                         return (
-                                            <div style={{ background: '#fce8e6', border: '1px solid #dc3545', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
-                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#dc3545', fontWeight: 'bold' }}>
+                                            <div style={{ background: 'var(--danger-light)', border: '1px solid var(--danger)', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
+                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--danger)', fontWeight: 'bold' }}>
                                                     🚨 ¡Peligro! Tu cuota sería de ${cuota.toLocaleString(undefined, {maximumFractionDigits:2})} y solo tienes ${sobranteCiclo.toLocaleString(undefined, {maximumFractionDigits:2})} libres.
                                                 </p>
-                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuotaViable, ciclosViables)} style={{ ...btnMainAdd, width: '100%', background: '#28a745', marginBottom: '10px', fontSize: '13px', padding: '12px' }}>
+                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuotaViable, ciclosViables)} style={{ ...btnMainAdd, width: '100%', background: 'var(--success)', marginBottom: '10px', fontSize: '13px', padding: '12px' }}>
                                                     Crear Viable: {ciclosViables} ciclos de ${cuotaViable.toLocaleString(undefined, {maximumFractionDigits:2})}
                                                 </button>
-                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainRemove, width: '100%', background: 'transparent', border: '1px solid #dc3545', color: '#dc3545', fontSize: '13px', padding: '12px' }}>
+                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainRemove, width: '100%', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: '13px', padding: '12px' }}>
                                                     Forzar: {cics} ciclos de ${cuota.toLocaleString(undefined, {maximumFractionDigits:2})} (Arriesgado)
                                                 </button>
                                             </div>
                                         );
                                     } else if (cuota > sobranteCiclo && sobranteCiclo <= 0) {
                                         return (
-                                            <div style={{ background: '#fce8e6', border: '1px solid #dc3545', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
-                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#dc3545', fontWeight: 'bold' }}>🚨 No tienes dinero libre este ciclo.</p>
-                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainRemove, width: '100%', fontSize: '13px' }}>Forzar de todos modos</button>
+                                            <div style={{ background: 'var(--danger-light)', border: '1px solid var(--danger)', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
+                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--danger)', fontWeight: 'bold' }}>🚨 No tienes dinero libre este ciclo.</p>
+                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainRemove, width: '100%', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', fontSize: '13px' }}>Forzar de todos modos</button>
                                             </div>
                                         )
                                     } else {
                                         return (
-                                            <div style={{ background: '#e6f4ea', border: '1px solid #28a745', padding: '15px', borderRadius: '15px', marginTop: '10px', textAlign: 'center' }}>
-                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#28a745', fontWeight: 'bold' }}>✅ ¡Es viable! Pagarás ${cuota.toLocaleString(undefined, {maximumFractionDigits:2})} por ciclo.</p>
-                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainAdd, width: '100%', background: '#e83e8c' }}>Crear Micro-Reto</button>
+                                            <div style={{ background: 'var(--success-light)', border: '1px solid var(--success)', padding: '15px', borderRadius: '15px', marginTop: '10px', textAlign: 'center' }}>
+                                                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--success)', fontWeight: 'bold' }}>✅ ¡Es viable! Pagarás ${cuota.toLocaleString(undefined, {maximumFractionDigits:2})} por ciclo.</p>
+                                                <button onClick={() => crearReto(nuevoCajon.nombre, cuota, cics)} style={{ ...btnMainAdd, width: '100%', background: 'var(--pink)' }}>Crear Micro-Reto</button>
                                             </div>
                                         );
                                     }
                                 }
-                                return <button style={{ ...btnMainAdd, width: '100%', marginTop: '10px', background: '#e1e5ee', color: '#a4b0be', cursor: 'not-allowed' }}>Ingresa los datos para evaluar</button>;
+                                return <button style={{ ...btnMainAdd, width: '100%', marginTop: '10px', background: 'var(--bg-tertiary)', color: 'var(--text-light)', cursor: 'not-allowed' }}>Ingresa los datos para evaluar</button>;
                             })()}
                         </>
                     )}
@@ -954,42 +957,49 @@ const Dashboard = () => {
 
             {isImprevistoModalOpen && (
                 <div className="modal-center" style={modalCenterStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><h3 style={{ margin: 0, color: '#dc3545', display: 'flex', alignItems: 'center', gap: '8px' }}><FaExclamationTriangle /> Gasto Imprevisto</h3><FaTimes onClick={() => setIsImprevistoModalOpen(false)} style={{ cursor: 'pointer', color: '#a4b0be' }} /></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><h3 style={{ margin: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}><FaExclamationTriangle /> Gasto Imprevisto</h3><FaTimes onClick={() => setIsImprevistoModalOpen(false)} style={{ cursor: 'pointer', color: 'var(--text-light)' }} /></div>
                     <input type="text" placeholder="¿En qué vas a gastar?" value={imprevistoForm.nombre} onChange={(e) => setImprevistoForm({...imprevistoForm, nombre: e.target.value})} style={inputModalStyle} />
                     <input type="number" min="0" onKeyDown={blockInvalidChars} placeholder="Costo" value={imprevistoForm.monto} onChange={(e) => setImprevistoForm({...imprevistoForm, monto: e.target.value})} style={inputModalStyle} />
-                    <button onClick={handleGuardarImprevisto} style={{ ...btnMainRemove, width: '100%', marginTop: '10px' }}>Restar en Cascada</button>
+                    <button onClick={handleGuardarImprevisto} style={{ ...btnMainRemove, width: '100%', marginTop: '10px', background: 'var(--danger)' }}>Restar en Cascada</button>
                 </div>
             )}
 
             {/* FULLSCREENS */}
-            <CalendarFullScreen isOpen={isFullScreenCalendar} onClose={() => setIsFullScreenCalendar(false)} eventos={eventosCalendario} historial={historial} onDeleteEvent={handleDeleteEventFromCalendar} onSaveEvent={handleSaveEventFromCalendar} nombresMeses={['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']} diasSemana={['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa']} mesActualGlobal={mesActual} anioActualGlobal={anioActual} />
-            <HistorialFullScreen isOpen={isHistorialOpen} onClose={() => setIsHistorialOpen(false)} historial={historial} />
-            <MetasFullScreen isOpen={isMetasOpen} onClose={() => setIsMetasOpen(false)} onAddCajon={agregarCajonDesdeMetas} onReplaceAhorro={reemplazarAhorroAdmin} onOpenEmergencia={() => { setIsMetasOpen(false); setIsEmergenciaOpen(true); }} gastosFijosBase={cajones['Gastos Fijos']?.monto || 0} gastosVariablesBase={cajones['Gastos Variables']?.monto || 0} ingresosMensuales={ingresosMensuales} edadUsuario={18} cicloMaestro={cicloMaestro} />
+            <CalendarFullScreen isOpen={isFullScreenCalendar} onClose={() => setIsFullScreenCalendar(false)} eventos={eventosCalendario} historial={historial} onDeleteEvent={handleDeleteEventFromCalendar} onSaveEvent={handleSaveEventFromCalendar} nombresMeses={['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']} diasSemana={['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa']} mesActualGlobal={mesActual} anioActualGlobal={anioActual} isDarkMode={isDarkMode} />
+            <HistorialFullScreen isOpen={isHistorialOpen} onClose={() => setIsHistorialOpen(false)} historial={historial} isDarkMode={isDarkMode} />
+            <MetasFullScreen isOpen={isMetasOpen} onClose={() => setIsMetasOpen(false)} onAddCajon={agregarCajonDesdeMetas} onReplaceAhorro={reemplazarAhorroAdmin} onOpenEmergencia={() => { setIsMetasOpen(false); setIsEmergenciaOpen(true); }} gastosFijosBase={cajones['Gastos Fijos']?.monto || 0} gastosVariablesBase={cajones['Gastos Variables']?.monto || 0} ingresosMensuales={ingresosMensuales} edadUsuario={18} cicloMaestro={cicloMaestro} isDarkMode={isDarkMode} />
             
-            <BovedaFullScreen isOpen={isBovedaFullScreenOpen} onClose={() => setIsBovedaFullScreenOpen(false)} saldoBoveda={boveda} saldoActual={saldoActual} saldoCajaFuerte={cajaFuerte} pinSeguridad={pinSeguridad} onTransaction={handleBovedaTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} cicloMaestro={cicloMaestro} onDeleteCajon={borrarCajon} />
+            <BovedaFullScreen isOpen={isBovedaFullScreenOpen} onClose={() => setIsBovedaFullScreenOpen(false)} saldoBoveda={boveda} saldoActual={saldoActual} saldoCajaFuerte={cajaFuerte} pinSeguridad={pinSeguridad} onTransaction={handleBovedaTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} cicloMaestro={cicloMaestro} onDeleteCajon={borrarCajon} isDarkMode={isDarkMode} />
             
-            <CajaFuerteFullScreen isOpen={isCajaFuerteFullScreenOpen} onClose={() => setIsCajaFuerteFullScreenOpen(false)} saldoCajaFuerte={cajaFuerte} saldoActual={saldoActual} saldoBoveda={boveda} pinSeguridad={pinSeguridad} onTransaction={handleCajaFuerteTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} ordenCajones={ordenCajones} completarMeta={completarReto} borrarMeta={borrarCajon} handleManualMeta={handleManualReto} />
+            <CajaFuerteFullScreen isOpen={isCajaFuerteFullScreenOpen} onClose={() => setIsCajaFuerteFullScreenOpen(false)} saldoCajaFuerte={cajaFuerte} saldoActual={saldoActual} saldoBoveda={boveda} pinSeguridad={pinSeguridad} onTransaction={handleCajaFuerteTransaction} historial={historial} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} cajones={cajones} ordenCajones={ordenCajones} completarMeta={completarReto} borrarMeta={borrarCajon} handleManualMeta={handleManualReto} isDarkMode={isDarkMode} />
             
-            <RetosFullScreen isOpen={isRetosFullScreenOpen} onClose={() => setIsRetosFullScreenOpen(false)} cajones={cajones} ordenCajones={ordenCajones} historial={historial} totalAcumulado={totalAcumuladoRetos} completarReto={completarReto} borrarReto={borrarCajon} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} />
+            <RetosFullScreen isOpen={isRetosFullScreenOpen} onClose={() => setIsRetosFullScreenOpen(false)} cajones={cajones} ordenCajones={ordenCajones} historial={historial} totalAcumulado={totalAcumuladoRetos} completarReto={completarReto} borrarReto={borrarCajon} eventosCalendario={eventosCalendario} onSaveEvent={handleSaveEventFromCalendar} onDeleteEvent={handleDeleteEventFromCalendar} mesActual={mesActual} anioActual={anioActual} isDarkMode={isDarkMode} />
 
             <div className="profile-sidebar" style={{ ...profileMenuSidebar, transform: isProfileOpen ? 'translateX(0)' : 'translateX(100%)' }}>
-                <div style={{display:'flex', justifyContent:'space-between', alignItems: 'center'}}><h3 style={{ margin: 0, fontSize: '22px', color: '#2f3542' }}>Menú Principal</h3><FaTimes onClick={()=>setIsProfileOpen(false)} style={{cursor:'pointer', fontSize: '24px', color: '#a4b0be'}}/></div>
-                <div style={{textAlign:'center', margin:'30px 0'}}><div style={avatarLargeStyle}>{userName.charAt(0).toUpperCase()}</div><h2 style={{ margin: '15px 0 5px 0', color: '#2f3542' }}>{userName}</h2></div>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems: 'center'}}><h3 style={{ margin: 0, fontSize: '22px', color: 'var(--text-main)' }}>Menú Principal</h3><FaTimes onClick={()=>setIsProfileOpen(false)} style={{cursor:'pointer', fontSize: '24px', color: 'var(--text-light)'}}/></div>
+                <div style={{textAlign:'center', margin:'30px 0'}}><div style={avatarLargeStyle}>{userName.charAt(0).toUpperCase()}</div><h2 style={{ margin: '15px 0 5px 0', color: 'var(--text-main)' }}>{userName}</h2></div>
 
-                <button onClick={() => { setIsProfileOpen(false); setIsRetosFullScreenOpen(true); }} style={{ background: '#fce3ed', padding: '20px', borderRadius: '15px', marginBottom: '25px', border: '1px dashed #e83e8c', textAlign: 'center', cursor: 'pointer', display: 'block', width: '100%', transition: '0.2s' }}>
-                    <h4 style={{ margin: '0 0 5px 0', color: '#e83e8c', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}><FaGamepad /> Acumulado en Retos</h4>
-                    <h2 style={{ margin: 0, color: '#e83e8c', fontSize: '32px' }}>${totalAcumuladoRetos.toLocaleString('es-MX', {minimumFractionDigits: 2})}</h2>
-                    <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#e83e8c', opacity: 0.8 }}>Clic para abrir tu sala de trofeos.</p>
+                <button onClick={() => { setIsProfileOpen(false); setIsRetosFullScreenOpen(true); }} style={{ background: 'var(--pink-light)', padding: '20px', borderRadius: '15px', marginBottom: '25px', border: '1px dashed var(--pink)', textAlign: 'center', cursor: 'pointer', display: 'block', width: '100%', transition: '0.2s' }}>
+                    <h4 style={{ margin: '0 0 5px 0', color: 'var(--pink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}><FaGamepad /> Acumulado en Retos</h4>
+                    <h2 style={{ margin: 0, color: 'var(--pink)', fontSize: '32px' }}>${totalAcumuladoRetos.toLocaleString('es-MX', {minimumFractionDigits: 2})}</h2>
+                    <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: 'var(--pink)', opacity: 0.8 }}>Clic para abrir tu sala de trofeos.</p>
                 </button>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <button style={{...profileActionBtn, border: '2px solid #007bff', background: '#eef3ff'}} onClick={abrirCajaFuerte}><FaLock style={{ color: '#007bff', fontSize: '18px' }} /> Caja Fuerte (Ahorros y Metas)</button>
-                    <button style={{...profileActionBtn, border: '2px solid #28a745', background: '#e6f4ea'}} onClick={abrirBoveda}><FaShieldAlt style={{ color: '#28a745', fontSize: '18px' }} /> Fondo de Emergencia</button>
-                    <button style={profileActionBtn} onClick={() => { setIsProfileOpen(false); setIsHistorialOpen(true); }}><FaHistory style={{ color: '#10ac84', fontSize: '18px' }} /> Historial Detallado</button>
-                    <button style={profileActionBtn} onClick={() => { setIsProfileOpen(false); setIsMetasOpen(true); }}><FaBullseye style={{ color: '#dc3545', fontSize: '18px' }} /> Mis Metas y Herramientas</button>
-                    <hr style={{ border: '0', borderTop: '1px solid #e1e5ee', margin: '10px 0' }} />
-                    <button style={profileActionBtn} onClick={abrirEditarPerfil}><FaUserEdit style={{ color: '#28a745', fontSize: '18px' }} /> Editar Perfil y Contraseña</button>
-                    <button style={profileActionBtn} onClick={abrirReconfiguracion}><FaCog style={{ color: '#007bff', fontSize: '18px' }} /> Reconfigurar Finanzas Base</button>
+                    <button style={{...profileActionBtn, border: '1px solid var(--primary)', background: 'var(--primary-light)', color: 'var(--primary)'}} onClick={abrirCajaFuerte}><FaLock style={{ fontSize: '18px' }} /> Caja Fuerte (Ahorros y Metas)</button>
+                    <button style={{...profileActionBtn, border: '1px solid var(--success)', background: 'var(--success-light)', color: 'var(--success)'}} onClick={abrirBoveda}><FaShieldAlt style={{ fontSize: '18px' }} /> Fondo de Emergencia</button>
+                    
+                    {/* 👇 BOTÓN MÁGICO DEL MODO OSCURO 👇 */}
+                    <button style={{...profileActionBtn, justifyContent: 'center', backgroundColor: isDarkMode ? '#334155' : '#f1f5f9'}} onClick={() => setIsDarkMode(!isDarkMode)}>
+                        {isDarkMode ? <FaSun style={{ color: '#fbbf24', fontSize: '18px' }} /> : <FaMoon style={{ color: '#64748b', fontSize: '18px' }} />} 
+                        {isDarkMode ? 'Activar Modo Claro' : 'Activar Modo Oscuro'}
+                    </button>
+
+                    <button style={profileActionBtn} onClick={() => { setIsProfileOpen(false); setIsHistorialOpen(true); }}><FaHistory style={{ color: 'var(--success-alt)', fontSize: '18px' }} /> Historial Detallado</button>
+                    <button style={profileActionBtn} onClick={() => { setIsProfileOpen(false); setIsMetasOpen(true); }}><FaBullseye style={{ color: 'var(--danger)', fontSize: '18px' }} /> Mis Metas y Herramientas</button>
+                    <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', margin: '10px 0' }} />
+                    <button style={profileActionBtn} onClick={abrirEditarPerfil}><FaUserEdit style={{ color: 'var(--success-alt)', fontSize: '18px' }} /> Editar Perfil y Contraseña</button>
+                    <button style={profileActionBtn} onClick={abrirReconfiguracion}><FaCog style={{ color: 'var(--primary)', fontSize: '18px' }} /> Reconfigurar Finanzas Base</button>
                 </div>
                 <div style={{ marginTop: 'auto', paddingTop: '40px' }}>
                     <button style={logoutBtnStyle} onClick={handleLogout}><FaSignOutAlt style={{ fontSize: '18px' }} /> Cerrar Sesión</button>
@@ -1000,10 +1010,10 @@ const Dashboard = () => {
             </div>
 
             <aside className="sidebar" style={sidebarStyle}>
-                <div style={{ marginBottom: '30px' }}><h2 style={{ margin: '0', color: '#007bff', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}><FaWallet /> FinTrack</h2><span style={{ fontSize: '12px', background: '#eef3ff', color: '#007bff', padding: '4px 12px', borderRadius: '20px', fontWeight: 'bold', display: 'inline-block', marginTop:'8px' }}>Ciclo: {cicloMaestro}</span></div>
-                <hr style={{ border: '0', borderTop: '1px solid #e1e5ee', marginBottom: '20px' }} />
+                <div style={{ marginBottom: '30px' }}><h2 style={{ margin: '0', color: 'var(--primary)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}><FaWallet /> FinTrack</h2><span style={{ fontSize: '12px', background: 'var(--primary-light)', color: 'var(--primary)', padding: '4px 12px', borderRadius: '20px', fontWeight: 'bold', display: 'inline-block', marginTop:'8px', border: '1px solid var(--primary)' }}>Ciclo: {cicloMaestro}</span></div>
+                <hr style={{ border: '0', borderTop: '1px solid var(--border-color)', marginBottom: '20px' }} />
                 <div style={calendarContainer}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}><span style={{ fontSize: '14px', fontWeight: 'bold', color: '#2f3542' }}><FaCalendarAlt color="#007bff" /> {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][mesActual]}</span><span onClick={() => setIsFullScreenCalendar(true)} style={{fontSize:'11px', color:'#007bff', cursor:'pointer', fontWeight:'bold', background:'#eef3ff', padding:'3px 8px', borderRadius:'10px'}}>Ver Todo</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}><span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-main)' }}><FaCalendarAlt color="var(--primary)" /> {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][mesActual]}</span><span onClick={() => setIsFullScreenCalendar(true)} style={{fontSize:'11px', color:'var(--primary)', cursor:'pointer', fontWeight:'bold', background:'var(--primary-light)', padding:'3px 8px', borderRadius:'10px'}}>Ver Todo</span></div>
                     <div style={gridDiasSemana}>{['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'].map(d => <div key={d} style={headerDia}>{d.substring(0,1)}</div>)}</div>
                     <div style={gridCalendario}>
                         {(() => {
@@ -1011,30 +1021,38 @@ const Dashboard = () => {
                             for (let i = 0; i < pDia; i++) dias.push(null); for (let i = 1; i <= dEnMes; i++) dias.push(i);
                             return dias.map((dia, i) => {
                                 const esHoy = dia === hoy.getDate() && mesActual === hoy.getMonth() && anioActual === hoy.getFullYear(); const { tienePago, tieneGasto } = checkEventosDia(dia);
-                                let bgColor = 'transparent'; let textColor = '#2f3542'; let boxShadowStyle = 'none';
-                                if (tienePago && tieneGasto) { bgColor = 'linear-gradient(135deg, #28a745 50%, #dc3545 50%)'; textColor = 'white'; } else if (tienePago) { bgColor = '#28a745'; textColor = 'white'; } else if (tieneGasto) { bgColor = '#dc3545'; textColor = 'white'; } else if (esHoy) { bgColor = '#007bff'; textColor = 'white'; }
-                                if (esHoy && (tienePago || tieneGasto)) { boxShadowStyle = 'inset 0 0 0 2px #fff, inset 0 0 0 4px #007bff, 0 3px 10px rgba(0,0,0,0.15)'; } else if (esHoy) { boxShadowStyle = '0 3px 10px rgba(0,123,255,0.4)'; } else if (tienePago || tieneGasto) { boxShadowStyle = '0 3px 10px rgba(0,0,0,0.15)'; }
+                                let bgColor = 'transparent'; let textColor = 'var(--text-main)'; let boxShadowStyle = 'none';
+                                
+                                // Color logic adjusted for dark mode variables
+                                if (tienePago && tieneGasto) { bgColor = 'linear-gradient(135deg, var(--success) 50%, var(--danger) 50%)'; textColor = 'white'; } 
+                                else if (tienePago) { bgColor = 'var(--success)'; textColor = 'white'; } 
+                                else if (tieneGasto) { bgColor = 'var(--danger)'; textColor = 'white'; } 
+                                else if (esHoy) { bgColor = 'var(--primary)'; textColor = 'white'; }
+                                
+                                if (esHoy && (tienePago || tieneGasto)) { boxShadowStyle = `inset 0 0 0 2px var(--bg-card), inset 0 0 0 4px var(--primary), 0 3px 10px rgba(0,0,0,0.3)`; } 
+                                else if (esHoy) { boxShadowStyle = '0 3px 10px var(--primary-light)'; } 
+                                else if (tienePago || tieneGasto) { boxShadowStyle = '0 3px 10px rgba(0,0,0,0.2)'; }
+                                
                                 return <div key={i} onClick={() => { if(dia) handleDayClick(dia); }} style={{...celdaDia, background: bgColor, color: textColor, fontWeight: (tienePago || tieneGasto || esHoy) ? 'bold' : 'normal', cursor: dia ? 'pointer' : 'default', boxShadow: boxShadowStyle}}>{dia || ''}</div>;
                             });
                         })()}
                     </div>
                 </div>
                 <div style={{ ...remindersContainer, marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}><h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', margin: 0, color: '#2f3542' }}><FaHistory color="#007bff" /> Últimos Movimientos</h4>{historial.length > 0 && <FaTrash onClick={limpiarHistorial} style={{ cursor: 'pointer', color: '#dc3545', fontSize: '12px' }} title="Vaciar Historial" />}</div>
-                    {historial.length === 0 ? ( <p style={{ margin: 0, fontSize: '12px', color: '#a4b0be' }}>Registra tus ingresos y gastos para ver el historial.</p> ) : ( <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>{historial.slice(0, 3).map(h => <div key={h.id} style={miniAlertCard} title={h.hora}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '13px' }}>{h.nombre}</span><span style={{ fontWeight: 'bold', fontSize: '13px', color: (h.tipo === 'pago' || h.tipo === 'ahorro_in') ? '#28a745' : '#dc3545' }}>{(h.tipo === 'pago' || h.tipo === 'ahorro_in') ? '+' : '-'}${h.monto}</span></div>)}</div> )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}><h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', margin: 0, color: 'var(--text-main)' }}><FaHistory color="var(--primary)" /> Últimos Movimientos</h4>{historial.length > 0 && <FaTrash onClick={limpiarHistorial} style={{ cursor: 'pointer', color: 'var(--danger)', fontSize: '12px' }} title="Vaciar Historial" />}</div>
+                    {historial.length === 0 ? ( <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Registra tus ingresos y gastos para ver el historial.</p> ) : ( <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>{historial.slice(0, 3).map(h => <div key={h.id} style={miniAlertCard} title={h.hora}><span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '13px' }}>{h.nombre}</span><span style={{ fontWeight: 'bold', fontSize: '13px', color: (h.tipo === 'pago' || h.tipo === 'ahorro_in') ? 'var(--success-alt)' : 'var(--danger)' }}>{(h.tipo === 'pago' || h.tipo === 'ahorro_in') ? '+' : '-'}${h.monto}</span></div>)}</div> )}
                 </div>
             </aside>
 
             <main className="main-content" style={mainContentStyle}>
                 <div style={mainContainerMaxWidth}>
                     
-                    {/* 👇 AQUÍ LE DIMOS EL TOQUE PREMIUM AL TÍTULO 👇 */}
                     <header style={headerStyle}>
                         <div>
-                            <h1 className="text-title" style={{ margin: 0, fontSize: '42px', fontWeight: '900', background: 'linear-gradient(135deg, #1e242b 0%, #007bff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1.5px' }}>
+                            <h1 className="text-title" style={{ margin: 0, fontSize: '42px', fontWeight: '900', background: 'var(--title-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1px' }}>
                                 Dashboard
                             </h1>
-                            <p style={{ margin: '5px 0 0 0', color: '#747d8c', fontSize:'15px', fontWeight: '500' }}>Todo tu dinero en automático.</p>
+                            <p style={{ margin: '5px 0 0 0', color: 'var(--text-muted)', fontSize:'15px', fontWeight: '500' }}>Todo tu dinero en automático.</p>
                         </div>
                         <div style={profileTriggerStyle} onClick={() => setIsProfileOpen(true)}>
                             <div style={avatarSmallStyle}>{userName.charAt(0).toUpperCase()}</div>
@@ -1042,9 +1060,9 @@ const Dashboard = () => {
                     </header>
 
                     <div style={mainCardStyle}>
-                        <span style={{ fontSize: '16px', letterSpacing: '0.5px' }}>Disponible para Gastar (Libre)</span>
-                        <h2 className="text-huge" style={{ fontSize: '64px', margin: '15px 0 5px 0', fontWeight: 'bold', color: '#4cd137', textShadow: '0 2px 10px rgba(76, 209, 55, 0.2)' }}>${disponibleLibre.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h2>
-                        <p style={{ margin: '0 0 30px 0', color: '#a4b0be', display: 'flex', alignItems: 'center', gap: '8px' }}><FaWallet /> Total del Ciclo (Cascada): ${saldoActual.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                        <span style={{ fontSize: '16px', letterSpacing: '0.5px', color: isDarkMode ? '#94a3b8' : 'rgba(255,255,255,0.7)' }}>Disponible para Gastar (Libre)</span>
+                        <h2 className="text-huge" style={{ fontSize: '64px', margin: '15px 0 5px 0', fontWeight: 'bold', color: isDarkMode ? '#10ac84' : '#4cd137', textShadow: isDarkMode ? '0 0 15px rgba(16, 172, 132, 0.4)' : '0 2px 10px rgba(76, 209, 55, 0.2)' }}>${disponibleLibre.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h2>
+                        <p style={{ margin: '0 0 30px 0', color: isDarkMode ? '#94a3b8' : 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: '8px' }}><FaWallet /> Total del Ciclo (Cascada): ${saldoActual.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
                         <div className="btn-group" style={{ display: 'flex', gap: '15px' }}>
                             <button onClick={handleAddMoney} style={btnMainAdd}><FaArrowUp /> Ingresar Dinero</button>
                             <button onClick={handleRemoveMoney} style={btnMainRemove} title="Gasto directo de bolsillo"><FaArrowDown /> Gasto Hormiga</button>
@@ -1052,25 +1070,24 @@ const Dashboard = () => {
                     </div>
 
                     <div className="stats-grid" style={statsGridStyle}>
-                        <div style={statCardStyle}><div style={{ display: 'flex', gap: '8px', color: '#28a745', marginBottom: '10px', fontWeight: 'bold' }}><FaArrowUp /> Ingresos Estimados ({cicloMaestro})</div><h3 style={{ margin: 0, fontSize: '26px' }}>${totalIngresosCiclo.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3></div>
-                        <div style={statCardStyle}><div style={{ display: 'flex', gap: '8px', color: '#007bff', marginBottom: '10px', fontWeight: 'bold' }}><FaArrowDown /> Gastos Meta ({cicloMaestro})</div><h3 style={{ margin: 0, fontSize: '26px' }}>${totalAsignadoBase.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3></div>
+                        <div style={statCardStyle}><div style={{ display: 'flex', gap: '8px', color: 'var(--success-alt)', marginBottom: '10px', fontWeight: 'bold' }}><FaArrowUp /> Ingresos Estimados ({cicloMaestro})</div><h3 style={{ margin: 0, fontSize: '26px', color: 'var(--text-main)' }}>${totalIngresosCiclo.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3></div>
+                        <div style={statCardStyle}><div style={{ display: 'flex', gap: '8px', color: 'var(--primary)', marginBottom: '10px', fontWeight: 'bold' }}><FaArrowDown /> Gastos Meta ({cicloMaestro})</div><h3 style={{ margin: 0, fontSize: '26px', color: 'var(--text-main)' }}>${totalAsignadoBase.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</h3></div>
                     </div>
 
-                    {/* GLOBITO AMARILLO DE SOBRANTE */}
                     {showSobranteAlert && sobranteCiclo > 0 && (
-                        <div style={{...alertSuccessStyle, background: '#fff9e6', borderLeft: '8px solid #ffc107', color: '#856404', position: 'relative'}}>
-                            <FaTimes onClick={() => setShowSobranteAlert(false)} style={{ position: 'absolute', top: '15px', right: '15px', cursor: 'pointer', color: '#856404' }} title="Cerrar aviso" />
-                            <FaLightbulb style={{ fontSize: '24px', marginRight: '15px', color: '#ffc107', flexShrink: 0 }} />
+                        <div style={{...alertSuccessStyle, background: 'var(--warning-light)', borderLeft: '8px solid var(--warning)', color: 'var(--warning)', position: 'relative'}}>
+                            <FaTimes onClick={() => setShowSobranteAlert(false)} style={{ position: 'absolute', top: '15px', right: '15px', cursor: 'pointer', color: 'var(--warning)' }} title="Cerrar aviso" />
+                            <FaLightbulb style={{ fontSize: '24px', marginRight: '15px', color: 'var(--warning)', flexShrink: 0 }} />
                             <div>
-                                <strong style={{ fontSize: '16px' }}>¡Sobrante proyectado!</strong>
-                                <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>Si cumples tus metas, te sobrarán <b>${sobranteCiclo.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</b> en este ciclo.</p>
+                                <strong style={{ fontSize: '16px', color: isDarkMode ? '#fbbf24' : '#856404' }}>¡Sobrante proyectado!</strong>
+                                <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: isDarkMode ? '#e2e8f0' : '#856404' }}>Si cumples tus metas, te sobrarán <b>${sobranteCiclo.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</b> en este ciclo.</p>
                             </div>
                         </div>
                     )}
 
                     <div className="flex-col-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', marginBottom: '20px' }}>
-                        <h3 style={{ margin: 0, fontSize: '22px' }}>Llenado en Cascada</h3>
-                        <button onClick={() => setIsEditingCajones(!isEditingCajones)} style={{...editPriorityBtn, background: isEditingCajones ? '#28a745' : '#eef3ff', color: isEditingCajones ? '#fff' : '#007bff'}}>{isEditingCajones ? '✓ Guardar Orden' : '✏️ Editar Prioridades'}</button>
+                        <h3 style={{ margin: 0, fontSize: '22px', color: 'var(--text-main)' }}>Llenado en Cascada</h3>
+                        <button onClick={() => setIsEditingCajones(!isEditingCajones)} style={{...editPriorityBtn, background: isEditingCajones ? 'var(--success-light)' : 'var(--primary-light)', color: isEditingCajones ? 'var(--success-alt)' : 'var(--primary)', border: `1px solid ${isEditingCajones ? 'var(--success)' : 'var(--border-color)'}`}}>{isEditingCajones ? '✓ Guardar Orden' : '✏️ Editar Prioridades'}</button>
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -1094,86 +1111,60 @@ const Dashboard = () => {
                                     <div className="cajon-header-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
                                             {isEditingCajones && (
-                                                <div style={{ display: 'flex', gap: '5px' }}><button onClick={() => moverCajonArribaAbajo(realIndex, 'up')} disabled={!canMoveUp || cajon.nombre === 'Deuda'} style={{...arrowBtn, opacity: (!canMoveUp || cajon.nombre === 'Deuda') ? 0.3 : 1}}><FaChevronUp /></button><button onClick={() => moverCajonArribaAbajo(realIndex, 'down')} disabled={!canMoveDown || cajon.nombre === 'Deuda'} style={{...arrowBtn, opacity: (!canMoveDown || cajon.nombre === 'Deuda') ? 0.3 : 1}}><FaChevronDown /></button><button onClick={() => abrirEdicionMonto(cajon.nombre)} style={{...arrowBtn, color: '#ff9f43', marginLeft: '5px'}}><FaEdit /></button>{!isAdmin(cajon.nombre) && <button onClick={() => borrarCajon(cajon.nombre, cajon.llenado)} style={{...arrowBtn, color: '#dc3545', marginLeft: '5px'}}><FaTrash /></button>}</div>
+                                                <div style={{ display: 'flex', gap: '5px' }}><button onClick={() => moverCajonArribaAbajo(realIndex, 'up')} disabled={!canMoveUp || cajon.nombre === 'Deuda'} style={{...arrowBtn, opacity: (!canMoveUp || cajon.nombre === 'Deuda') ? 0.3 : 1}}><FaChevronUp /></button><button onClick={() => moverCajonArribaAbajo(realIndex, 'down')} disabled={!canMoveDown || cajon.nombre === 'Deuda'} style={{...arrowBtn, opacity: (!canMoveDown || cajon.nombre === 'Deuda') ? 0.3 : 1}}><FaChevronDown /></button><button onClick={() => abrirEdicionMonto(cajon.nombre)} style={{...arrowBtn, color: 'var(--warning)', marginLeft: '5px'}}><FaEdit /></button>{!isAdmin(cajon.nombre) && <button onClick={() => borrarCajon(cajon.nombre, cajon.llenado)} style={{...arrowBtn, color: 'var(--danger)', marginLeft: '5px'}}><FaTrash /></button>}</div>
                                             )}
-                                            <span style={{ fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <span style={{background: '#f1f2f6', color: '#a4b0be', padding: '3px 10px', borderRadius: '8px', fontSize: '12px'}}>{realIndex + 1}</span>
+                                            <span style={{ fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)' }}>
+                                                <span style={{background: 'var(--bg-tertiary)', color: 'var(--text-muted)', padding: '3px 10px', borderRadius: '8px', fontSize: '12px', border: '1px solid var(--border-light)'}}>{realIndex + 1}</span>
                                                 {cajon.nombre === 'Deuda' ? '🚨 DEUDA' : cajon.nombre} 
-                                                {isFull && <FaCheckCircle color="#28a745"/>} 
-                                                {isEmpty && <FaExclamationCircle color="#dc3545"/>}
+                                                {isFull && <FaCheckCircle color="var(--success-alt)"/>} 
+                                                {isEmpty && <FaExclamationCircle color="var(--danger)"/>}
                                             </span>
                                         </div>
-                                        <span style={{ fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
                                             {cajon.completado ? (
-                                                <span style={{color: '#28a745'}}>¡COMPLETADO! 🎉</span>
+                                                <span style={{color: 'var(--success-alt)'}}>¡COMPLETADO! 🎉</span>
                                             ) : isAsegurado ? (
-                                                <span style={{color: '#28a745'}}>🛡️ Asegurado</span>
+                                                <span style={{color: 'var(--success-alt)'}}>🛡️ Asegurado</span>
                                             ) : (
                                                 `$${cajon.llenado.toLocaleString()}`
                                             )}
-                                            {!cajon.completado && !isAsegurado && <span style={{fontSize:'13px', color:'#a4b0be', fontWeight:'normal'}}> / ${cajon.meta.toLocaleString()}</span>}
+                                            {!cajon.completado && !isAsegurado && <span style={{fontSize:'13px', color:'var(--text-muted)', fontWeight:'normal'}}> / ${cajon.meta.toLocaleString()}</span>}
                                         </span>
                                     </div>
                                     
                                     <div style={progressBg}>
-                                        <div style={{ ...progressFill, width: `${isAsegurado ? 100 : cajon.porcentaje}%`, backgroundColor: isFull ? '#28a745' : isEmpty ? '#dc3545' : (cajon.nombre==='Deuda'?'#dc3545':'#ffc107') }}></div>
+                                        <div style={{ ...progressFill, width: `${isAsegurado ? 100 : cajon.porcentaje}%`, backgroundColor: isFull ? 'var(--success-alt)' : isEmpty ? 'var(--danger)' : (cajon.nombre==='Deuda'?'var(--danger)':'var(--warning)'), boxShadow: (isFull && isDarkMode) ? '0 0 10px rgba(16, 172, 132, 0.5)' : 'none' }}></div>
                                     </div>
                                     
                                     { (cajon.nombre === 'Fondo de Emergencia' || cajon.nombre.startsWith('Meta:') || cajon.nombre.startsWith('Reto:')) && (
-                                        <div style={{ marginTop: '15px', background: '#f8f9fa', borderRadius: '10px', border: '1px solid #e1e5ee', overflow: 'hidden' }}>
-                                            <div onClick={() => toggleCajon(cajon.nombre)} style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s', background: expandedCajones[cajon.nombre] ? '#eef3ff' : 'transparent' }}>
-                                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#2f3542' }}>
+                                        <div style={{ marginTop: '15px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                                            <div onClick={() => toggleCajon(cajon.nombre)} style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s', background: expandedCajones[cajon.nombre] ? 'var(--primary-light)' : 'transparent' }}>
+                                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-muted)' }}>
                                                     {cajon.nombre === 'Fondo de Emergencia' ? 'Detalle de Bóveda' : 'Progreso Acumulado'}
                                                 </span>
-                                                <span style={{ color: '#007bff' }}>{expandedCajones[cajon.nombre] ? <FaChevronUp /> : <FaChevronDown />}</span>
+                                                <span style={{ color: 'var(--primary)' }}>{expandedCajones[cajon.nombre] ? <FaChevronUp /> : <FaChevronDown />}</span>
                                             </div>
                                             
                                             {expandedCajones[cajon.nombre] && (() => {
-                                                let acumuladoReal = 0;
-                                                let metaTotalAcordeon = 0;
-
-                                                if (cajon.nombre === 'Fondo de Emergencia') {
-                                                    acumuladoReal = boveda;
-                                                    metaTotalAcordeon = cajones['Fondo de Emergencia']?.metaTotal || 0;
-                                                } else if (cajon.nombre.startsWith('Meta:')) {
-                                                    acumuladoReal = cajones[cajon.nombre]?.acumulado || 0;
-                                                    const match = cajon.nombre.match(/\(Total: (\d+(\.\d+)?)\)/);
-                                                    metaTotalAcordeon = match ? parseFloat(match[1]) : 0;
-                                                } else if (cajon.nombre.startsWith('Reto:')) {
-                                                    acumuladoReal = cajones[cajon.nombre]?.acumulado || 0;
-                                                    const match = cajon.nombre.match(/\((\d+)\s*ciclos\)/);
-                                                    const ciclos = match ? parseInt(match[1]) : 0;
-                                                    metaTotalAcordeon = ciclos * cajon.meta;
-                                                }
+                                                let acumuladoReal = 0; let metaTotalAcordeon = 0;
+                                                if (cajon.nombre === 'Fondo de Emergencia') { acumuladoReal = boveda; metaTotalAcordeon = cajones['Fondo de Emergencia']?.metaTotal || 0; } 
+                                                else if (cajon.nombre.startsWith('Meta:')) { acumuladoReal = cajones[cajon.nombre]?.acumulado || 0; const match = cajon.nombre.match(/\(Total: (\d+(\.\d+)?)\)/); metaTotalAcordeon = match ? parseFloat(match[1]) : 0; } 
+                                                else if (cajon.nombre.startsWith('Reto:')) { acumuladoReal = cajones[cajon.nombre]?.acumulado || 0; const match = cajon.nombre.match(/\((\d+)\s*ciclos\)/); const ciclos = match ? parseInt(match[1]) : 0; metaTotalAcordeon = ciclos * cajon.meta; }
 
                                                 const porcentajeAcumulado = metaTotalAcordeon > 0 ? Math.min((acumuladoReal / metaTotalAcordeon) * 100, 100) : 0;
 
                                                 return (
                                                     <div style={{ padding: '0 15px 15px 15px' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 'bold', color: '#2f3542', marginBottom: '8px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '8px' }}>
                                                             <span>{cajon.nombre === 'Fondo de Emergencia' ? 'Fondo Acumulado (Bóveda)' : 'Total Guardado'}</span>
-                                                            {metaTotalAcordeon > 0 ? (
-                                                                <span style={{color: '#28a745'}}>${acumuladoReal.toLocaleString()} / ${metaTotalAcordeon.toLocaleString()}</span>
-                                                            ) : (
-                                                                <span style={{color: '#ffc107', fontSize: '12px'}}>⚠️ Define la meta</span>
-                                                            )}
+                                                            {metaTotalAcordeon > 0 ? ( <span style={{color: 'var(--success-alt)'}}>${acumuladoReal.toLocaleString()} / ${metaTotalAcordeon.toLocaleString()}</span> ) : ( <span style={{color: 'var(--warning)', fontSize: '12px'}}>⚠️ Define la meta</span> )}
                                                         </div>
-                                                        {metaTotalAcordeon > 0 && (
-                                                            <div style={{ width: '100%', height: '8px', background: '#e1e5ee', borderRadius: '4px', overflow: 'hidden' }}>
-                                                                <div style={{ height: '100%', width: `${porcentajeAcumulado}%`, background: '#28a745', transition: '0.3s' }}></div>
-                                                            </div>
-                                                        )}
+                                                        {metaTotalAcordeon > 0 && ( <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}><div style={{ height: '100%', width: `${porcentajeAcumulado}%`, background: 'var(--success-alt)', transition: '0.3s', boxShadow: isDarkMode ? '0 0 8px rgba(16,172,132,0.8)' : 'none' }}></div></div> )}
                                                         
                                                         {cajon.completado ? (
-                                                            <div style={{ marginTop: '15px', padding: '10px', borderRadius: '8px', textAlign: 'center', color: '#28a745', fontWeight: 'bold', background: '#e6f4ea', border: '1px solid #28a745', fontSize: '13px' }}>
-                                                                🎉 ¡Objetivo 100% Completado!
-                                                            </div>
+                                                            <div style={{ marginTop: '15px', padding: '10px', borderRadius: '8px', textAlign: 'center', color: 'var(--success-alt)', fontWeight: 'bold', background: 'var(--success-light)', border: '1px solid var(--success-alt)', fontSize: '13px' }}>🎉 ¡Objetivo 100% Completado!</div>
                                                         ) : (
-                                                            isAsegurado && (
-                                                                <div style={{ marginTop: '15px', padding: '10px', borderRadius: '8px', textAlign: 'center', color: '#28a745', fontWeight: 'bold', border: '1px dashed #28a745', fontSize: '13px' }}>
-                                                                    <FaCheckCircle /> Pago guardado en este ciclo
-                                                                </div>
-                                                            )
+                                                            isAsegurado && ( <div style={{ marginTop: '15px', padding: '10px', borderRadius: '8px', textAlign: 'center', color: 'var(--success-alt)', fontWeight: 'bold', border: '1px dashed var(--success-alt)', fontSize: '13px' }}><FaCheckCircle /> Pago guardado en este ciclo</div> )
                                                         )}
                                                     </div>
                                                 );
@@ -1181,20 +1172,19 @@ const Dashboard = () => {
                                         </div>
                                     )}
 
-                                    {/* BOTONES DE MOVER O GUARDAR (SOLO SI NO ESTÁ COMPLETADO O ASEGURADO) */}
                                     {!cajon.completado && !isAsegurado && isFull && (
                                         <>
                                             {cajon.nombre === 'Fondo de Emergencia' ? (
-                                                <button onClick={() => asegurarFondos(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: '#e6f4ea', color: '#28a745', border: `1px dashed #28a745`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                <button onClick={() => asegurarFondos(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: 'var(--success-light)', color: 'var(--success-alt)', border: `1px dashed var(--success-alt)`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                                     <FaShieldAlt /> Mover a Bóveda Intocable
                                                 </button>
                                             ) : (cajon.nombre.startsWith('Reto:') || cajon.nombre.startsWith('Meta:')) ? (
-                                                <button onClick={() => abonarReto(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: cajon.nombre.startsWith('Meta:') ? '#eef3ff' : '#fce3ed', color: cajon.nombre.startsWith('Meta:') ? '#007bff' : '#e83e8c', border: `1px dashed ${cajon.nombre.startsWith('Meta:') ? '#007bff' : '#e83e8c'}`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                <button onClick={() => abonarReto(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: cajon.nombre.startsWith('Meta:') ? 'var(--primary-light)' : 'var(--pink-light)', color: cajon.nombre.startsWith('Meta:') ? 'var(--primary)' : 'var(--pink)', border: `1px dashed ${cajon.nombre.startsWith('Meta:') ? 'var(--primary)' : 'var(--pink)'}`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                                     <FaPiggyBank /> Guardar {cajon.nombre.startsWith('Meta:') ? 'Ahorro' : 'Pago'} del Ciclo
                                                 </button> 
                                             ) : (
                                                 !['Gastos Fijos', 'Gastos Variables', 'Deuda'].includes(cajon.nombre) && !esImprevisto && (
-                                                    <button onClick={() => asegurarFondos(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: '#eef3ff', color: '#007bff', border: `1px dashed #007bff`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                    <button onClick={() => asegurarFondos(cajon.nombre, cajon.llenado)} style={{ width: '100%', background: 'var(--primary-light)', color: 'var(--primary)', border: `1px dashed var(--primary)`, padding: '10px', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                                         <FaLock /> Mover a Caja Fuerte
                                                     </button>
                                                 )
@@ -1204,10 +1194,10 @@ const Dashboard = () => {
                                 </div>
                             );
                         })}
-                        {estadoCajones.find(c => c.nombre === 'Libre') && ( <div style={{...cascadeCard, border: '2px solid #007bff'}}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}><span style={{ fontSize: '16px', fontWeight: 'bold', color: '#007bff' }}>Cajón Libre (Sobrante final)</span><span style={{ fontSize: '16px', fontWeight: 'bold', color: '#007bff' }}>${estadoCajones.find(c => c.nombre === 'Libre').llenado.toLocaleString()}</span></div><div style={progressBg}><div style={{ ...progressFill, width: `100%`, backgroundColor: '#007bff' }}></div></div></div> )}
+                        {estadoCajones.find(c => c.nombre === 'Libre') && ( <div style={{...cascadeCard, border: '2px solid var(--primary)', animation: 'pulseGlow 3s infinite'}}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}><span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--primary)' }}>Cajón Libre (Sobrante final)</span><span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--primary)' }}>${estadoCajones.find(c => c.nombre === 'Libre').llenado.toLocaleString()}</span></div><div style={progressBg}><div style={{ ...progressFill, width: `100%`, backgroundColor: 'var(--primary)', boxShadow: isDarkMode ? '0 0 10px rgba(59,130,246,0.6)' : 'none' }}></div></div></div> )}
                     </div>
 
-                    <h3 style={{ marginTop: '50px', marginBottom: '20px', fontSize: '22px' }}>Detalle por Cajón</h3>
+                    <h3 style={{ marginTop: '50px', marginBottom: '20px', fontSize: '22px', color: 'var(--text-main)' }}>Detalle por Cajón</h3>
                     <div style={cajonesGridStyle}>
                         {estadoCajones.map((cajon, index) => {
                             if (cajon.nombre === 'Libre') return null;
@@ -1215,76 +1205,64 @@ const Dashboard = () => {
                             const isImp = cajon.nombre.includes('🚨') || cajon.nombre.includes('Imprevisto');
                             return (
                                 <div key={index} style={cajonCard}>
-                                    <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}><div style={{...iconBox, background: isImp ? '#ffebee' : '#eef3ff', color: isImp ? '#dc3545' : '#007bff'}}><FaBoxOpen /></div><h4 style={{ margin: '0', fontSize: '16px', alignSelf:'center' }}>{cajon.nombre}</h4></div>
-                                    <p style={{ margin: 0, fontSize: '12px', color: '#747d8c', textTransform: 'uppercase', fontWeight: 'bold' }}>Meta ({cicloMaestro})</p>
-                                    <p style={{ margin: '5px 0 25px 0', fontSize: '28px', fontWeight: 'bold' }}>${cajon.meta.toLocaleString()}</p>
-                                    <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', color: isFull ? '#28a745' : '#ff9f43', padding: '15px', backgroundColor: isFull ? '#e6f4ea' : '#fff9e6', borderRadius: '15px' }}><span>Fondo Real:</span><span>${cajon.llenado.toLocaleString()}</span></div>
+                                    <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}><div style={{...iconBox, background: isImp ? 'var(--danger-light)' : 'var(--primary-light)', color: isImp ? 'var(--danger)' : 'var(--primary)'}}><FaBoxOpen /></div><h4 style={{ margin: '0', fontSize: '16px', alignSelf:'center', color: 'var(--text-main)' }}>{cajon.nombre}</h4></div>
+                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Meta ({cicloMaestro})</p>
+                                    <p style={{ margin: '5px 0 25px 0', fontSize: '28px', fontWeight: 'bold', color: 'var(--text-main)' }}>${cajon.meta.toLocaleString()}</p>
+                                    <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', color: isFull ? 'var(--success-alt)' : 'var(--warning)', padding: '15px', backgroundColor: isFull ? 'var(--success-light)' : 'var(--warning-light)', borderRadius: '15px', border: `1px solid ${isFull ? 'var(--success-light)' : 'var(--warning-light)'}` }}><span>Fondo Real:</span><span>${cajon.llenado.toLocaleString()}</span></div>
                                 </div>
                             );
                         })}
-                        <div style={addCajonCard} onClick={() => setIsAddModalOpen(true)}><FaPlus style={{ fontSize: '36px', color: '#007bff', marginBottom: '15px' }} /><span style={{ fontSize: '16px', fontWeight: 'bold', color: '#007bff' }}>Añadir Cajón</span><span style={{ fontSize: '13px', color: '#747d8c', marginTop: '8px' }}>Nueva Meta Fija</span></div>
-                        <div style={{...addCajonCard, border: '3px dashed rgba(220, 53, 69, 0.3)', background:'rgba(220, 53, 69, 0.03)'}} onClick={() => setIsImprevistoModalOpen(true)}><FaExclamationTriangle style={{ fontSize: '36px', color: '#dc3545', marginBottom: '15px' }} /><span style={{ fontSize: '16px', fontWeight: 'bold', color: '#dc3545' }}>Gasto Imprevisto</span><span style={{ fontSize: '13px', color: '#747d8c', marginTop: '8px' }}>Impacto en cascada</span></div>
+                        <div style={addCajonCard} onClick={() => setIsAddModalOpen(true)}><FaPlus style={{ fontSize: '36px', color: 'var(--primary)', marginBottom: '15px' }} /><span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--primary)' }}>Añadir Cajón</span><span style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px' }}>Nueva Meta Fija</span></div>
+                        <div style={{...addCajonCard, border: '3px dashed var(--danger-light)', background:'transparent'}} onClick={() => setIsImprevistoModalOpen(true)}><FaExclamationTriangle style={{ fontSize: '36px', color: 'var(--danger)', marginBottom: '15px' }} /><span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--danger)' }}>Gasto Imprevisto</span><span style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px' }}>Impacto en cascada</span></div>
                     </div>
                     <div style={{ height: '100px' }}></div>
                 </div>
-                
-                {showTutorial && (
-                    <GuiaTutorial 
-                        seccion="dashboard_principal_v1"
-                        pasos={[
-                            { titulo: "Tu Centro de Mando 📊", contenido: "Aquí verás todo tu dinero líquido. Ingresa tu saldo y la Cascada lo repartirá automáticamente llenando tus cajones según su prioridad." },
-                            { titulo: "El Poder del Sobrante 💸", contenido: "Si te sobra dinero al final del ciclo (Cajón Libre), significa que tu estrategia funcionó y gastaste menos de lo que ganaste." },
-                            { titulo: "Corte de Ciclo 🔄", contenido: "Cuando llegue tu Día de Pago, la app te pedirá hacer cuentas de los cajones llenos para saber qué gastaste y qué te sobró." }
-                        ]}
-                        onClose={() => setShowTutorial(false)}
-                    />
-                )}
             </main>
         </div>
     );
 };
 
-// ESTILOS CSS-IN-JS
-const appWrapperStyle = { display: 'flex', backgroundColor: '#f4f7f6', minHeight: '100vh', fontFamily: "'Segoe UI', sans-serif" };
-const sidebarStyle = { position: 'fixed', top: 0, left: 0, width: '280px', height: '100vh', backgroundColor: '#fff', padding: '30px 25px', boxSizing: 'border-box', borderRight: '1px solid #e1e5ee', overflowY: 'auto', zIndex: 100 };
+// ESTILOS CSS-IN-JS (Mapeados a Variables Dinámicas)
+const appWrapperStyle = { display: 'flex', backgroundColor: 'var(--bg-main)', minHeight: '100vh', fontFamily: "'Segoe UI', sans-serif", color: 'var(--text-main)', transition: 'background-color 0.3s' };
+const sidebarStyle = { position: 'fixed', top: 0, left: 0, width: '280px', height: '100vh', backgroundColor: 'var(--bg-sidebar)', padding: '30px 25px', boxSizing: 'border-box', borderRight: '1px solid var(--border-color)', overflowY: 'auto', zIndex: 100, transition: '0.3s' };
 const mainContentStyle = { marginLeft: '280px', flex: 1, padding: '40px 50px', boxSizing: 'border-box' };
 const mainContainerMaxWidth = { maxWidth: '1000px', margin: '0 auto' };
-const overlayStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1999, backdropFilter: 'blur(4px)' };
-const modalCenterStyle = { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: '#fff', padding: '35px', borderRadius: '30px', boxShadow: '0 25px 50px rgba(0,0,0,0.2)', zIndex: 4000, width: '380px', boxSizing: 'border-box' };
-const inputModalStyle = { padding: '15px', borderRadius: '15px', border: '1px solid #dfe6e9', width: '100%', marginBottom: '15px', outline: 'none', background: '#f8f9fa', fontSize: '15px', boxSizing: 'border-box' };
-const labelModalStyle = { fontSize:'13px', fontWeight:'bold', color:'#747d8c', marginBottom:'8px', display:'block' };
-const badgeDayStyle = { background: '#007bff', color: '#fff', padding: '8px 20px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px' };
+const overlayStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'var(--overlay)', zIndex: 1999, backdropFilter: 'blur(5px)' };
+const modalCenterStyle = { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'var(--bg-card)', padding: '35px', borderRadius: '30px', boxShadow: 'var(--modal-shadow)', zIndex: 4000, width: '380px', boxSizing: 'border-box', border: '1px solid var(--border-color)', transition: '0.3s' };
+const inputModalStyle = { padding: '15px', borderRadius: '15px', border: '1px solid var(--border-light)', width: '100%', marginBottom: '15px', outline: 'none', background: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '15px', boxSizing: 'border-box', transition: '0.3s' };
+const labelModalStyle = { fontSize:'13px', fontWeight:'bold', color:'var(--text-muted)', marginBottom:'8px', display:'block' };
+const badgeDayStyle = { background: 'var(--primary)', color: '#fff', padding: '8px 20px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px' };
 const typeSelectorGrid = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' };
 const typeBtn = { padding: '15px', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '15px', transition: 'all 0.2s ease' };
-const calendarContainer = { backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '25px', marginBottom: '30px', border: '1px solid #e1e5ee' };
-const gridDiasSemana = { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: '15px', fontSize: '12px', color: '#a4b0be', fontWeight: 'bold' };
+const calendarContainer = { backgroundColor: 'var(--bg-secondary)', padding: '20px', borderRadius: '25px', marginBottom: '30px', border: '1px solid var(--border-color)', transition: '0.3s' };
+const gridDiasSemana = { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: '15px', fontSize: '12px', color: 'var(--text-light)', fontWeight: 'bold' };
 const headerDia = { padding: '5px 0' };
 const gridCalendario = { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' };
 const celdaDia = { textAlign: 'center', padding: '8px 0', fontSize: '13px', borderRadius: '12px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' };
-const remindersContainer = { backgroundColor: '#fff', border: '1px solid #e1e5ee', padding: '25px 20px', borderRadius: '25px' };
-const miniAlertCard = { fontSize: '13px', color: '#2f3542', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', borderRadius: '12px', backgroundColor: '#f8f9fa', marginBottom: '10px', border: '1px solid #e1e5ee', gap: '10px' };
+const remindersContainer = { backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '25px 20px', borderRadius: '25px', transition: '0.3s' };
+const miniAlertCard = { fontSize: '13px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', borderRadius: '12px', backgroundColor: 'var(--bg-secondary)', marginBottom: '10px', border: '1px solid var(--border-color)', gap: '10px', transition: '0.3s' };
 const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' };
-const mainCardStyle = { background: 'linear-gradient(135deg, #2b323c 0%, #1e242b 100%)', color: 'white', padding: '45px', borderRadius: '35px', boxShadow: '0 20px 45px rgba(0,0,0,0.15)', marginBottom: '40px' };
-const btnMainAdd = { flex: 1, backgroundColor: '#10ac84', color: 'white', border: 'none', borderRadius: '18px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' };
-const btnMainRemove = { flex: 1, backgroundColor: '#ee5253', color: 'white', border: 'none', borderRadius: '18px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' };
+const mainCardStyle = { background: 'var(--main-card-bg)', color: 'var(--main-card-text)', padding: '45px', borderRadius: '35px', boxShadow: 'var(--card-shadow)', marginBottom: '40px', border: '1px solid var(--border-color)', transition: '0.3s' };
+const btnMainAdd = { flex: 1, backgroundColor: 'var(--success-alt)', color: '#fff', border: 'none', borderRadius: '18px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', transition: '0.2s' };
+const btnMainRemove = { flex: 1, backgroundColor: 'var(--danger-alt)', color: '#fff', border: 'none', borderRadius: '18px', padding: '18px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', transition: '0.2s' };
 const alertSuccessStyle = { display: 'flex', alignItems: 'center', padding: '20px 25px', borderRadius: '20px', marginBottom: '40px', transition: 'opacity 0.5s ease-out' };
 const statsGridStyle = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '45px' };
-const statCardStyle = { backgroundColor: '#fff', padding: '30px', borderRadius: '25px', border: '1px solid #e1e5ee' };
+const statCardStyle = { backgroundColor: 'var(--bg-card)', padding: '30px', borderRadius: '25px', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', transition: '0.3s' };
 const editPriorityBtn = { padding: '10px 18px', borderRadius: '15px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '8px' };
-const arrowBtn = { background: '#e1e5ee', color: '#2f3542', border: 'none', padding: '10px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' };
-const cascadeCard = { backgroundColor: '#fff', padding: '25px 30px', borderRadius: '25px', border: '1px solid #f1f2f6', transition: '0.2s' };
-const progressBg = { width: '100%', height: '14px', backgroundColor: '#e1e5ee', borderRadius: '12px', overflow: 'hidden' };
+const arrowBtn = { background: 'var(--bg-tertiary)', color: 'var(--text-main)', border: '1px solid var(--border-light)', padding: '10px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' };
+const cascadeCard = { backgroundColor: 'var(--bg-card)', padding: '25px 30px', borderRadius: '25px', border: '1px solid var(--border-color)', transition: '0.2s', boxShadow: 'var(--card-shadow)' };
+const progressBg = { width: '100%', height: '14px', backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-light)' };
 const progressFill = { height: '100%', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)' };
 const cajonesGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '30px' };
-const cajonCard = { backgroundColor: '#fff', padding: '30px', borderRadius: '30px', display: 'flex', flexDirection: 'column', boxShadow: '0 5px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f2f6' };
+const cajonCard = { backgroundColor: 'var(--bg-card)', padding: '30px', borderRadius: '30px', display: 'flex', flexDirection: 'column', boxShadow: 'var(--card-shadow)', border: '1px solid var(--border-color)', transition: '0.3s' };
 const iconBox = { padding: '18px', borderRadius: '20px', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const addCajonCard = { border: '3px dashed rgba(0, 123, 255, 0.3)', background:'rgba(0,123,255,0.03)', borderRadius: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '220px', transition: '0.2s' };
+const addCajonCard = { border: '3px dashed var(--primary-light)', background:'transparent', borderRadius: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '220px', transition: '0.2s' };
 const profileTriggerStyle = { cursor: 'pointer' };
-const avatarSmallStyle = { width: '60px', height: '60px', background: '#007bff', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '24px', boxShadow: '0 5px 15px rgba(0,123,255,0.3)' };
-const profileMenuSidebar = { position: 'fixed', top: 0, right: 0, width: '400px', height: '100vh', background: '#fff', zIndex: 2000, padding: '45px', transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '-15px 0 40px rgba(0,0,0,0.1)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflowY: 'auto' };
-const avatarLargeStyle = { width: '110px', height: '110px', background: '#007bff', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '45px', margin: '0 auto' };
-const profileActionBtn = { width: '100%', padding: '20px', background: '#f8f9fa', border: '1px solid #e1e5ee', borderRadius: '15px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '15px', fontSize: '15px', color: '#2f3542', cursor: 'pointer', marginBottom: '15px' };
-const logoutBtnStyle = { width: '100%', padding: '20px', background: '#ffebee', color: '#dc3545', border: 'none', borderRadius: '15px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', marginTop: 'auto' };
-const deleteAccountBtnStyle = { width: '100%', padding: '20px', background: '#fff', color: '#dc3545', border: '2px solid #dc3545', borderRadius: '15px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', marginTop: '10px', transition: '0.2s' };
+const avatarSmallStyle = { width: '60px', height: '60px', background: 'var(--primary)', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '24px', boxShadow: '0 5px 15px var(--primary-light)' };
+const profileMenuSidebar = { position: 'fixed', top: 0, right: 0, width: '400px', height: '100vh', background: 'var(--bg-sidebar)', zIndex: 2000, padding: '45px', transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '-15px 0 40px var(--overlay)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflowY: 'auto', borderLeft: '1px solid var(--border-color)' };
+const avatarLargeStyle = { width: '110px', height: '110px', background: 'var(--primary)', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '45px', margin: '0 auto', boxShadow: '0 10px 25px var(--primary-light)' };
+const profileActionBtn = { width: '100%', padding: '20px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '15px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '15px', fontSize: '15px', color: 'var(--text-main)', cursor: 'pointer', marginBottom: '15px', transition: '0.2s' };
+const logoutBtnStyle = { width: '100%', padding: '20px', background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger-light)', borderRadius: '15px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', marginTop: 'auto', transition: '0.2s' };
+const deleteAccountBtnStyle = { width: '100%', padding: '20px', background: 'transparent', color: 'var(--danger)', border: '2px dashed var(--danger)', borderRadius: '15px', fontWeight: 'bold', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', marginTop: '10px', transition: '0.2s' };
 
 export default Dashboard;
