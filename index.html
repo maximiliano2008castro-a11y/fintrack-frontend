@@ -37,8 +37,8 @@ body.dark{
 .hidden{display:none!important}
 .overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--overlay);z-index:1999;backdrop-filter:blur(5px)}
 .modal-center{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-card);padding:35px;border-radius:30px;box-shadow:var(--modal-shadow);z-index:4000;width:380px;max-width:92vw;box-sizing:border-box;border:1px solid var(--border-color);max-height:90vh;overflow-y:auto}
-.input-modal{padding:15px;border-radius:15px;border:1px solid var(--border-light);width:100%;margin-bottom:15px;outline:none;background:var(--bg-secondary);color:var(--text-main);font-size:15px}
-.input-modal:focus{border-color:var(--primary)}
+.input-modal{padding:15px;border-radius:15px;border:1px solid var(--border-light);width:100%;margin-bottom:15px;outline:none;background:var(--bg-secondary);color:var(--text-main);font-size:15px;-webkit-appearance:none}
+.input-modal:focus{border-color:var(--primary)}.input-modal::placeholder{color:var(--text-light)}
 .label-modal{font-size:13px;font-weight:bold;color:var(--text-muted);margin-bottom:8px;display:block}
 .btn-primary{background:var(--primary);color:#fff;border:none;border-radius:15px;padding:16px;font-weight:bold;font-size:16px;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;transition:0.2s;cursor:pointer}
 .btn-success{background:var(--success-alt);color:#fff;border:none;border-radius:18px;padding:18px;font-weight:bold;font-size:16px;flex:1;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer}
@@ -58,26 +58,26 @@ body.dark{
 .login-footer{text-align:center;margin-top:20px;font-weight:bold;color:#000}
 .login-link{color:#f39c12;cursor:pointer;text-decoration:underline}
 .pwd-hint{font-size:11px;color:#666;line-height:1.4;background:#f8f9fa;padding:10px;border-radius:5px;border:1px solid #ddd}
-#view-onboarding{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(244,247,246,0.95);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
-.onb-modal{background:#fff;padding:40px 50px;border-radius:35px;box-shadow:0 25px 60px rgba(0,0,0,0.1);max-width:550px;width:100%;text-align:center;border:1px solid #e1e5ee;max-height:90vh;overflow-y:auto}
+#view-onboarding{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.onb-modal{background:var(--bg-card);padding:40px 50px;border-radius:35px;box-shadow:0 25px 60px rgba(0,0,0,0.1);max-width:550px;width:100%;text-align:center;border:1px solid #e1e5ee;max-height:90vh;overflow-y:auto}
 .onb-progress-bar{width:100%;height:8px;background:#f1f2f6;border-radius:10px;margin-bottom:30px;overflow:hidden}
 .onb-progress-fill{height:100%;background:linear-gradient(90deg,#007bff,#00d2ff);transition:width 0.5s ease}
-.onb-title{color:#2f3542;font-size:26px;margin:0 0 10px 0;font-weight:900}
-.onb-desc{color:#747d8c;font-size:15px;margin-bottom:25px;line-height:1.5}
-.onb-input{width:100%;padding:18px;border-radius:15px;border:2px solid #e1e5ee;font-size:16px;font-weight:bold;outline:none;margin-bottom:15px;background:#f8f9fa;color:#2f3542;transition:all 0.2s;box-sizing:border-box}
+.onb-title{color:var(--text-main);font-size:26px;margin:0 0 10px 0;font-weight:900}
+.onb-desc{color:var(--text-muted);font-size:15px;margin-bottom:25px;line-height:1.5}
+.onb-input{width:100%;padding:18px;border-radius:15px;border:2px solid var(--border-color);font-size:16px;font-weight:bold;outline:none;margin-bottom:15px;background:var(--bg-secondary);color:var(--text-main);transition:all 0.2s;box-sizing:border-box}
 .onb-input:focus{border-color:#007bff;box-shadow:0 0 0 4px rgba(0,123,255,0.15)}
-.onb-btn{width:100%;padding:20px;border-radius:18px;border:none;background:#2f3542;color:#fff;font-weight:bold;font-size:16px;cursor:pointer;margin-top:20px;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s}
+.onb-btn{width:100%;padding:20px;border-radius:18px;border:none;background:var(--text-main);color:var(--bg-main);font-weight:bold;font-size:16px;cursor:pointer;margin-top:20px;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s}
 .onb-btn:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,0.15)}
 .onb-btn-green{background:#10ac84}
-.onb-label{display:block;font-size:14px;font-weight:bold;color:#a4b0be;margin-bottom:8px;text-align:left}
-.onb-tip{display:flex;align-items:center;gap:15px;background:#fff9e6;padding:15px 20px;border-radius:15px;border-left:4px solid #f39c12;margin-bottom:25px;text-align:left}
-.onb-admin-box{background:#fff;border:2px solid #e1e5ee;padding:20px;border-radius:20px;margin-bottom:15px;transition:all 0.2s;width:100%;box-sizing:border-box}
-.onb-input-mini{padding:12px;border-radius:12px;border:2px solid #e1e5ee;outline:none;font-weight:bold;font-size:16px;width:110px;text-align:center;background:#f8f9fa;color:#2f3542;margin:0}
-.onb-sug-btn{padding:12px 20px;border-radius:15px;font-weight:bold;font-size:14px;transition:all 0.2s;width:100%;border:1px solid currentColor;background:transparent;cursor:pointer}
-.onb-calc-panel{margin-top:20px;padding:20px;border-top:1px dashed #e1e5ee;background:#fcfcfc;border-radius:0 0 15px 15px}
+.onb-label{display:block;font-size:14px;font-weight:bold;color:var(--text-light);margin-bottom:8px;text-align:left}
+.onb-tip{display:flex;align-items:center;gap:15px;background:var(--warning-light);padding:15px 20px;border-radius:15px;border-left:4px solid var(--warning);margin-bottom:25px;text-align:left}
+.onb-admin-box{background:var(--bg-card);border:2px solid var(--border-color);padding:20px;border-radius:20px;margin-bottom:15px;transition:all 0.2s;width:100%;box-sizing:border-box}
+.onb-input-mini{padding:12px;border-radius:12px;border:2px solid var(--border-color);outline:none;font-weight:bold;font-size:16px;width:110px;text-align:center;background:var(--bg-secondary);color:var(--text-main);margin:0}
+.onb-sug-btn{padding:12px 20px;border-radius:15px;font-weight:bold;font-size:14px;transition:all 0.2s;flex:1;border:1px solid currentColor;background:transparent;cursor:pointer}
+.onb-calc-panel{margin-top:20px;padding:20px;border-top:1px dashed var(--border-color);background:var(--bg-secondary);border-radius:0 0 15px 15px}
 .onb-calc-row{display:flex;gap:8px;margin-bottom:12px}
-.onb-calc-input{padding:10px;border-radius:10px;border:1px solid #dfe6e9;outline:none;font-size:14px;background:#fff;width:30%}
-.onb-calc-select{padding:10px;border-radius:10px;border:1px solid #dfe6e9;outline:none;font-size:14px;background:#fff;width:40%}
+.onb-calc-input{padding:10px;border-radius:10px;border:1px solid var(--border-light);outline:none;font-size:14px;background:var(--bg-card);color:var(--text-main);width:30%}
+.onb-calc-select{padding:10px;border-radius:10px;border:1px solid var(--border-light);outline:none;font-size:14px;background:var(--bg-card);color:var(--text-main);width:40%}
 .onb-step-container{display:flex;flex-direction:column;align-items:center;width:100%;animation:slideUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards}
 @keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
 #view-dashboard{display:flex;background:var(--bg-main);min-height:100vh}
@@ -87,7 +87,7 @@ body.dark{
 .cal-container{background:var(--bg-secondary);padding:20px;border-radius:25px;margin-bottom:30px;border:1px solid var(--border-color)}
 .cal-grid-head{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:15px;font-size:12px;color:var(--text-light);font-weight:bold}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.cal-day{text-align:center;font-size:13px;border-radius:12px;height:34px;display:flex;align-items:center;justify-content:center;transition:0.2s;cursor:pointer}
+.cal-day{text-align:center;font-size:13px;border-radius:12px;height:36px;display:flex;align-items:center;justify-content:center;transition:0.2s;cursor:pointer;min-width:0}
 .cal-day:hover{background:var(--primary-light)}
 .cal-day.today{background:var(--primary);color:#fff}
 .cal-day.has-pago{background:var(--success);color:#fff}
@@ -95,14 +95,14 @@ body.dark{
 .cal-day.has-both{background:linear-gradient(135deg,var(--success) 50%,var(--danger) 50%);color:#fff}
 .cal-day.empty{cursor:default;pointer-events:none}
 .main-card{background:var(--main-card-bg);color:var(--main-card-text);padding:45px;border-radius:35px;box-shadow:var(--card-shadow);margin-bottom:40px;border:1px solid var(--border-color)}
-.balance-amount{font-size:64px;font-weight:bold;color:#4cd137;margin:15px 0 5px 0}
+.balance-amount{font-size:clamp(36px,8vw,64px);font-weight:bold;color:#4cd137;margin:15px 0 5px 0}
 body.dark .balance-amount{color:#10ac84}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-bottom:45px}
 .stat-card{background:var(--bg-card);padding:30px;border-radius:25px;border:1px solid var(--border-color);box-shadow:var(--card-shadow)}
 .btn-group{display:flex;gap:15px}
-.cascade-card{background:var(--bg-card);padding:25px 30px;border-radius:25px;border:1px solid var(--border-color);box-shadow:var(--card-shadow);margin-bottom:15px}
-.libre-card{border:2px solid var(--primary)!important;animation:pulseGlow 3s infinite}
-@keyframes pulseGlow{0%{box-shadow:0 0 10px rgba(59,130,246,0.2)}50%{box-shadow:0 0 20px rgba(59,130,246,0.6)}100%{box-shadow:0 0 10px rgba(59,130,246,0.2)}}
+.cascade-card{background:var(--bg-card);padding:25px 30px;border-radius:25px;border:1px solid var(--border-color);box-shadow:var(--card-shadow);margin-bottom:15px;transition:box-shadow 0.2s}.cascade-card:hover{box-shadow:0 8px 32px rgba(0,0,0,0.08)}
+.libre-card{border:2px solid var(--primary)!important;background:var(--primary-light)!important;animation:pulseGlow 3s infinite}
+@keyframes pulseGlow{0%{box-shadow:0 0 10px var(--primary-light)}50%{box-shadow:0 0 25px var(--primary),0 0 8px var(--primary-light)}100%{box-shadow:0 0 10px var(--primary-light)}}
 .cajones-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:30px}
 .add-cajon-card{border:3px dashed var(--primary-light);background:transparent;border-radius:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;min-height:220px;transition:0.2s}
 .add-cajon-card:hover{background:var(--primary-light)}
@@ -111,9 +111,9 @@ body.dark .balance-amount{color:#10ac84}
 .profile-sidebar.closed{transform:translateX(100%)}
 .avatar-large{width:110px;height:110px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:45px;margin:0 auto}
 .avatar-small{width:60px;height:60px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;cursor:pointer}
-.profile-action-btn{width:100%;padding:20px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:15px;font-weight:bold;display:flex;align-items:center;gap:15px;font-size:15px;color:var(--text-main);cursor:pointer;margin-bottom:15px;transition:0.2s;text-align:left}
+.profile-action-btn{width:100%;padding:20px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:15px;font-weight:bold;display:flex;align-items:center;gap:15px;font-size:15px;color:var(--text-main);cursor:pointer;margin-bottom:15px;transition:0.2s;text-align:left}.profile-action-btn:hover{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
 .mini-alert-card{font-size:13px;color:var(--text-main);display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:var(--bg-secondary);margin-bottom:10px;border:1px solid var(--border-color);gap:10px}
-.fullscreen-view{position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--bg-main);z-index:5000;overflow-y:auto;padding:40px}
+.fullscreen-view{position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--bg-main);z-index:5000;overflow-y:auto;padding:40px;scroll-behavior:smooth}
 .alert-warning{display:flex;align-items:center;padding:20px 25px;border-radius:20px;margin-bottom:40px;background:var(--warning-light);border-left:8px solid var(--warning);color:var(--warning);position:relative}
 #loading-screen{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0b0f19;display:flex;align-items:center;justify-content:center;z-index:99999}
 #loading-screen h2{color:#3b82f6;font-size:24px}
@@ -213,7 +213,7 @@ body.dark .balance-amount{color:#10ac84}
         <div>
           <h1 style="margin:0;font-size:42px;font-weight:900;color:var(--title-gradient);letter-spacing:-1px">Dashboard</h1>
           <p style="margin:5px 0 0 0;color:var(--text-muted);font-size:15px">Todo tu dinero en automático.</p>
-          <span id="dias-cobro-badge" style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:12px;font-weight:bold;background:var(--success-light);color:var(--success-alt);padding:4px 12px;border-radius:20px;border:1px solid var(--success-alt)"></span>
+          <span id="dias-cobro-badge" style="display:none;align-items:center;gap:5px;margin-top:6px;font-size:12px;font-weight:bold;background:var(--success-light);color:var(--success-alt);padding:4px 12px;border-radius:20px;border:1px solid var(--success-alt)"></span>
         </div>
         <div class="avatar-small" id="db-avatar" onclick="openProfileSidebar()"></div>
       </header>
@@ -1043,7 +1043,8 @@ function renderDashboard(){
 // ═══════════════════════════════════════════
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 function renderCalendar(){
-  document.getElementById('cal-mes-label').innerHTML='📅 '+MESES[APP.mesActual];
+  const esAnioActual = APP.anioActual === new Date().getFullYear();
+  document.getElementById('cal-mes-label').innerHTML='📅 '+MESES[APP.mesActual]+(esAnioActual?'':' '+APP.anioActual);
   document.getElementById('cal-weekdays').innerHTML=['Do','Lu','Ma','Mi','Ju','Vi','Sa'].map(d=>`<div>${d}</div>`).join('');
   const hoy=new Date();const dEnMes=new Date(APP.anioActual,APP.mesActual+1,0).getDate();
   const pd=new Date(APP.anioActual,APP.mesActual,1).getDay();
@@ -1200,7 +1201,7 @@ function renderCascade(ec){
     }
     html+=`<div class="cascade-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:5px">${editBtns}<span style="font-size:16px;font-weight:bold;display:flex;align-items:center;gap:10px;color:var(--text-main)"><span style="background:var(--bg-tertiary);color:var(--text-muted);padding:3px 10px;border-radius:8px;font-size:12px;border:1px solid var(--border-light)">${ri+1}</span>${cj.nombre==='Deuda'?'🚨 DEUDA':escH(cj.nombre)}${isFull?'<span style="color:var(--success-alt)">✅</span>':''}${isEmpty?'<span style="color:var(--danger)">❗</span>':''}</span></div>
+        <div style="display:flex;align-items:center;gap:5px">${editBtns}<span style="font-size:16px;font-weight:bold;display:flex;align-items:center;gap:10px;color:var(--text-main);min-width:0;flex-shrink:1"><span style="background:var(--bg-tertiary);color:var(--text-muted);padding:3px 10px;border-radius:8px;font-size:12px;border:1px solid var(--border-light)">${ri+1}</span>${cj.nombre==='Deuda'?'🚨 DEUDA':escH(cj.nombre)}${isFull?'<span style="color:var(--success-alt)">✅</span>':''}${isEmpty?'<span style="color:var(--danger)">❗</span>':''}</span></div>
         <span style="font-size:16px;font-weight:bold;color:var(--text-main)">${montoTxt}</span>
       </div>
       <div class="progress-bg"><div class="progress-fill" style="width:${isSeg?100:cj.porcentaje}%;background:${fillColor}"></div></div>
@@ -1295,7 +1296,7 @@ function setAddCajonTipo(tipo){
 }
 function getSobranteCiclo(){
   const ti=APP.ingresos.reduce((s,i)=>s+calcularAcople(i.monto,i.frecuencia,APP.cicloMaestro),0);
-  const ta=Object.values(APP.cajones).reduce((s,c)=>s+calcularAcople(c.monto,c.frecuencia,APP.cicloMaestro),0);
+  const ta=Object.values(APP.cajones).filter(c=>c.frecuencia!=='Imprevisto_Pagado').reduce((s,c)=>s+calcularAcople(c.monto,c.frecuencia,APP.cicloMaestro),0);
   return ti-ta;
 }
 function renderRetoEvaluacion(){
@@ -1335,7 +1336,7 @@ function handleGuardarImprevisto(){
   const nImp=`🚨 Imprevisto: ${nombre}`;
   registrarEnHistorial(nImp,monto,'gasto',APP.saldoActual,APP.saldoActual-monto);
   APP.saldoActual-=monto;APP.cajones[nImp]={monto,frecuencia:'Imprevisto_Pagado'};
-  APP.ordenCajones.unshift(nImp);closeModal('modal-imprevisto');
+  const _di=APP.ordenCajones.indexOf('Deuda');APP.ordenCajones.splice(_di>=0?_di+1:0,0,nImp);closeModal('modal-imprevisto');
   document.getElementById('imp-nombre').value='';document.getElementById('imp-monto').value='';
   saveState();renderDashboard();
 }
@@ -1516,33 +1517,13 @@ function handleGuardarPerfil(){
 // ═══════════════════════════════════════════
 function openFullHistory(){
   closeProfileSidebar();
-  const el=document.getElementById('historial-full-content');
-  if(!APP.historial.length){el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:40px;font-size:16px">Sin movimientos registrados aún.</p>';
-  }else{
-    const porDia={};
-    APP.historial.forEach(h=>{const k=`${h.anio}-${String(h.mes+1).padStart(2,'0')}-${String(h.dia).padStart(2,'0')}`;if(!porDia[k]) porDia[k]=[];porDia[k].push(h);});
-    el.innerHTML=Object.keys(porDia).sort((a,b)=>b.localeCompare(a)).map(fecha=>{
-      const[anio,mes,dia]=fecha.split('-');
-      const items=porDia[fecha];
-      return `<div style="margin-bottom:30px">
-        <div style="font-size:13px;font-weight:bold;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color)">${dia}/${mes}/${anio}</div>
-        ${items.map(h=>`<div style="display:flex;align-items:center;gap:15px;padding:18px 20px;background:var(--bg-card);border-radius:18px;margin-bottom:10px;border:1px solid var(--border-color)">
-          <div style="width:45px;height:45px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;background:${(h.tipo==='pago'||h.tipo==='ahorro_in')?'var(--success-light)':'var(--danger-light)'};color:${(h.tipo==='pago'||h.tipo==='ahorro_in')?'var(--success-alt)':'var(--danger)'}">
-            ${(h.tipo==='pago'||h.tipo==='ahorro_in')?'↑':'↓'}</div>
-          <div style="flex:1"><div style="font-weight:bold;color:var(--text-main);font-size:15px">${escH(h.nombre)}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:3px">${h.hora}${h.saldoAnterior!==null?` · Saldo: ${fmtMoney(h.saldoAnterior)} → ${fmtMoney(h.saldoNuevo)}`:''}
-          </div></div>
-          <div style="font-weight:bold;font-size:18px;color:${(h.tipo==='pago'||h.tipo==='ahorro_in')?'var(--success-alt)':'var(--danger)'}">
-            ${(h.tipo==='pago'||h.tipo==='ahorro_in')?'+':'-'}${fmtMoney(h.monto)}</div>
-        </div>`).join('')}
-      </div>`;
-    }).join('');
-  }
+  APP.historialFiltro = APP.historialFiltro || { tipo:'todos', busqueda:'' };
+  APP.historialFiltro.busqueda = '';
+  APP.historialFiltro.tipo = 'todos';
   document.getElementById('fullscreen-historial').classList.remove('hidden');
+  renderHistorialFull();
 }
-// ═══════════════════════════════════════════
-// FULLSCREEN: METAS
-// ═══════════════════════════════════════════
+
 function openMetasView(){
   closeProfileSidebar();
   METAS_STATE = {
@@ -2026,9 +2007,11 @@ function ejecutarMaquinaTiempo(){
   const tasa=parseFloat(f.tasaAnual)||10, retiro=parseInt(f.edadRetiro)||65;
   let edad=18;
   if(APP.fechaNacimiento&&APP.fechaNacimiento.includes('-')){
-    const hoy=new Date(), nac=new Date(APP.fechaNacimiento);
-    edad=hoy.getFullYear()-nac.getFullYear();
-    if(hoy.getMonth()-nac.getMonth()<0) edad--;
+    const hoyFm=new Date(), nac=new Date(APP.fechaNacimiento);
+    edad=hoyFm.getFullYear()-nac.getFullYear();
+    // Restar 1 si el cumpleaños aún no ha llegado este año
+    const noHaCumplido=hoyFm.getMonth()<nac.getMonth()||(hoyFm.getMonth()===nac.getMonth()&&hoyFm.getDate()<nac.getDate());
+    if(noHaCumplido) edad--;
   }
   if(retiro<=edad) return alert(`Tienes aprox. ${edad} años. La edad de retiro debe ser mayor.`);
   if(mensual<=0&&inicial<=0) return alert('⚠️ Debes ingresar un aporte mensual o inicial.');
@@ -2215,7 +2198,13 @@ function finalizarCorte(){
   const monto=parseFloat(document.getElementById('corte-ingreso-input').value)||0;
   APP.ultimaFechaReinicio=new Date().toDateString();
   // Racha de ciclos: incrementar si no hubo imprevistos este ciclo
-  const tuvoImprevistos=APP.historial.slice(0,20).some(h=>h.nombre&&h.nombre.startsWith('🚨 Imprevisto'));
+  // Solo buscar imprevistos ocurridos en el ciclo actual (desde el último reinicio)
+  const fechaInicioActual = APP.ultimaFechaReinicio ? new Date(APP.ultimaFechaReinicio) : new Date(0);
+  const tuvoImprevistos = APP.historial.some(h => {
+    if (!h.nombre?.startsWith('🚨 Imprevisto')) return false;
+    const fechaMov = new Date(h.anio, h.mes, h.dia);
+    return fechaMov >= fechaInicioActual;
+  });
   if(!tuvoImprevistos){ APP.rachaCiclos=(APP.rachaCiclos||0)+1; APP.ultimoCicloCompleto=new Date().toDateString(); }
   else APP.rachaCiclos=0;
   if(monto>0){const prev=APP.saldoActual;APP.saldoActual+=monto;registrarEnHistorial(`¡Inicio de Ciclo ${APP.cicloMaestro}!`,monto,'pago',prev,APP.saldoActual);}
@@ -2235,19 +2224,22 @@ function calcDiasCobro() {
   const diaCobro = parseInt(APP.diaInicioCiclo) || 1;
 
   if (APP.cicloMaestro === 'Mensual') {
+    const hoyMidnight = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
     let target = new Date(hoy.getFullYear(), hoy.getMonth(), diaCobro);
-    if (target <= hoy) target = new Date(hoy.getFullYear(), hoy.getMonth() + 1, diaCobro);
-    return Math.ceil((target - hoy) / 86400000);
+    if (target < hoyMidnight) target = new Date(hoy.getFullYear(), hoy.getMonth() + 1, diaCobro);
+    return Math.ceil((target - hoyMidnight) / 86400000);
   }
   if (APP.cicloMaestro === 'Quincenal') {
-    const d = hoy.getDate();
-    const d2 = diaCobro + 15 > 30 ? 15 : diaCobro + 15;
+    const diasEnMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    const d2 = Math.min(diaCobro + 15, diasEnMes);
     const next1 = new Date(hoy.getFullYear(), hoy.getMonth(), diaCobro);
     const next2 = new Date(hoy.getFullYear(), hoy.getMonth(), d2);
-    let targets = [next1, next2].filter(t => t > hoy);
+    // Hoy a medianoche para comparación justa
+    const hoyMidnight = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    let targets = [next1, next2].filter(t => t >= hoyMidnight);
     if (!targets.length) targets = [new Date(hoy.getFullYear(), hoy.getMonth() + 1, diaCobro)];
     targets.sort((a, b) => a - b);
-    return Math.ceil((targets[0] - hoy) / 86400000);
+    return Math.ceil((targets[0] - hoyMidnight) / 86400000);
   }
   if (APP.cicloMaestro === 'Semanal') {
     const dow = hoy.getDay(); const target = parseInt(APP.diaInicioCiclo) || 1;
@@ -2260,11 +2252,26 @@ function calcDiasCobro() {
 function renderDiasCobro() {
   const badge = document.getElementById('dias-cobro-badge');
   if (!badge || !APP.cicloMaestro) return;
-  if (APP.cicloMaestro === 'Diario') { badge.textContent = '📅 Cobro diario'; return; }
+  if (APP.cicloMaestro === 'Diario') {
+    badge.textContent = '📅 Cobro diario';
+    badge.style.display = 'inline-flex';
+    return;
+  }
   const dias = calcDiasCobro();
-  if (dias === 0) badge.textContent = '🟢 ¡Hoy es día de cobro!';
-  else if (dias === 1) badge.textContent = '⏰ Cobro mañana';
-  else badge.textContent = `📅 Cobro en ${dias} días`;
+  const DIAS_SEM_NOM = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  let texto = '';
+  if (APP.cicloMaestro === 'Semanal') {
+    const nombreDia = DIAS_SEM_NOM[parseInt(APP.diaInicioCiclo) || 1];
+    if (dias === 0) texto = `🟢 ¡Hoy cobras (${nombreDia})!`;
+    else if (dias === 1) texto = `⏰ Cobras mañana (${nombreDia})`;
+    else texto = `📅 Cobras el ${nombreDia} (en ${dias} días)`;
+  } else {
+    if (dias === 0) texto = '🟢 ¡Hoy es día de cobro!';
+    else if (dias === 1) texto = '⏰ Cobro mañana';
+    else texto = `📅 Cobro en ${dias} días`;
+  }
+  badge.textContent = texto;
+  badge.style.display = 'inline-flex';
   badge.style.background = dias <= 2 ? 'var(--warning-light)' : 'var(--success-light)';
   badge.style.color = dias <= 2 ? 'var(--warning)' : 'var(--success-alt)';
   badge.style.borderColor = dias <= 2 ? 'var(--warning)' : 'var(--success-alt)';
@@ -2288,7 +2295,7 @@ function renderAlertaRiesgo() {
       `<span style="display:inline-block;background:var(--danger);color:#fff;padding:2px 8px;border-radius:8px;margin:2px;font-size:12px">${escH(cj.nombre)} — necesita ${fmtMoney(cj.meta)}</span>`
     ).join('');
     el.classList.remove('hidden');
-    el.style.display = 'flex';
+    el.style.display = 'flex'; // asegurar flex override
   } else {
     el.classList.add('hidden');
   }
@@ -2546,11 +2553,12 @@ function openFullHistory() {
 }
 
 function renderHistorialFull() {
+  APP.historialFiltro = APP.historialFiltro || { tipo:'todos', busqueda:'' };
   const f = APP.historialFiltro;
   const el = document.getElementById('historial-full-content');
 
   // Header con controles
-  const controles = `<div style="display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-bottom:25px;padding:20px;background:var(--bg-card);border-radius:20px;border:1px solid var(--border-color)">
+  const controles = `<div style="display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-bottom:25px;padding:20px;background:var(--bg-card);border-radius:20px;border:1px solid var(--border-color);position:sticky;top:-40px;z-index:10;box-shadow:0 4px 20px var(--card-shadow)">
     <input type="text" placeholder="🔍 Buscar movimiento..." value="${escH(f.busqueda)}" oninput="APP.historialFiltro.busqueda=this.value;renderHistorialFull()" style="flex:1;min-width:200px;padding:12px 16px;border-radius:12px;border:1px solid var(--border-light);outline:none;background:var(--bg-secondary);color:var(--text-main);font-size:14px">
     <div style="display:flex;gap:8px">
       ${['todos','pago','gasto'].map(t=>`<button onclick="APP.historialFiltro.tipo='${t}';renderHistorialFull()" style="padding:10px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:bold;font-size:13px;background:${f.tipo===t?'var(--primary)':'var(--bg-secondary)'};color:${f.tipo===t?'#fff':'var(--text-muted)'}">${t==='todos'?'Todo':t==='pago'?'↑ Ingresos':'↓ Gastos'}</button>`).join('')}
