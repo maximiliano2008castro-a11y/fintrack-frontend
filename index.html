@@ -444,6 +444,7 @@ body.dark .balance-amount{color:#10ac84}
       <h2 style="margin:0 0 10px 0;color:var(--text-main)">¡Nuevo Ciclo!</h2>
       <p style="margin:0;color:var(--text-muted);font-size:14px" id="corte-subtitle">Hagamos cuentas de los cajones que quedaron con dinero.</p>
     </div>
+    <div id="corte-review-pagos"></div>
     <div id="corte-cajones-list"></div>
     <div id="corte-finalize" class="hidden">
       <div style="background:var(--primary-light);padding:20px;border-radius:15px;text-align:center;margin-bottom:15px;border:1px solid var(--primary)">
@@ -593,7 +594,7 @@ const APP = {
   currentEventDay:null, isEditingEvent:false, editingEventId:null, currentEventTipo:'gasto',
   addCajonTipo:'Fijo', editMontoNombreOriginal:'',
   subGastos:[{nombre:'',monto:'',frecuencia:'Mensual'}],
-  cajonesCorte:[], ingresoPendienteCorte:0,
+  cajonesCorte:[], ingresoPendienteCorte:0, pagosCorteReview:[],
   // Notas por cajón
   notasCajones:{},
   // Agenda de fechas de pago por cajón
@@ -2352,6 +2353,13 @@ function checkCorteCiclo(){
   });
   const ti=APP.ingresos.reduce((s,i)=>s+calcularAcople(i.monto,i.frecuencia,APP.cicloMaestro),0);
   APP.cajonesCorte=pendientes;APP.ingresoPendienteCorte=ti;
+  // Construir lista de pagos programados para revisar en el corte
+  APP.pagosCorteReview=[];
+  Object.entries(APP.itemsAgenda||{}).forEach(([cajon,items])=>{
+    (items||[]).filter(it=>it.nombre&&parseFloat(it.monto)>0).forEach(it=>{
+      APP.pagosCorteReview.push({cajon,nombre:it.nombre,monto:parseFloat(it.monto)||0,frecuencia:it.frecuencia,pagado:null});
+    });
+  });
   // ⚠️ NO guardamos ultimaFechaReinicio aquí — se guarda en finalizarCorte()
   renderCorteModal();
   document.getElementById('overlay').classList.remove('hidden');
@@ -2359,19 +2367,56 @@ function checkCorteCiclo(){
   modal.classList.remove('hidden');modal.style.zIndex='10000';document.getElementById('overlay').style.zIndex='9999';
 }
 function renderCorteModal(){
-  const pend=APP.cajonesCorte.filter(c=>!c.procesado);
-  document.getElementById('corte-subtitle').textContent=pend.length?'Hagamos cuentas de los cajones que quedaron con dinero.':'Ahora define con cuánto dinero inicias.';
-  document.getElementById('corte-cajones-list').innerHTML=pend.map(c=>{
-    const ri=APP.cajonesCorte.findIndex(x=>x.nombre===c.nombre&&!x.procesado);
-    return `<div style="padding:15px;border-radius:15px;border:1px solid var(--border-color);background:var(--bg-secondary);margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:12px"><b style="color:var(--text-main)">${escH(c.nombre)}</b><b style="color:var(--primary)">${fmtMoney(c.llenado)}</b></div>
-      <div style="display:flex;gap:10px">
-        <button onclick="procesarCorteCajon(${ri},'gastar')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--danger);background:var(--danger-light);color:var(--danger);font-weight:bold;cursor:pointer;font-size:13px">💸 Ya lo pagué / gasté</button>
-        <button onclick="procesarCorteCajon(${ri},'sobrante')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--success);background:var(--success-light);color:var(--success);font-weight:bold;cursor:pointer;font-size:13px">🔄 No lo gasté</button>
-      </div></div>`;
-  }).join('');
+  const review=APP.pagosCorteReview||[];
+  const reviewEl=document.getElementById('corte-review-pagos');
+  const listEl=document.getElementById('corte-cajones-list');
   const fin=document.getElementById('corte-finalize');
-  if(!pend.length){
+  const todosRespondidos=review.length===0||review.every(p=>p.pagado!==null);
+
+  // ── FASE 1: Revisión de pagos programados ──
+  if(reviewEl){
+    if(review.length>0){
+      const sinResponder=review.filter(p=>p.pagado===null).length;
+      reviewEl.innerHTML=`<div style="background:var(--bg-secondary);border-radius:15px;border:1px solid var(--border-color);padding:15px;margin-bottom:15px">
+        <p style="margin:0 0 12px 0;font-size:12px;font-weight:bold;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">💳 Pagos del ciclo que cierra</p>
+        ${review.map((p,i)=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:var(--bg-card);margin-bottom:8px;border:1px solid ${p.pagado===true?'var(--success-alt)':p.pagado===false?'var(--danger)':'var(--border-light)'}">
+            <div style="min-width:0;flex:1">
+              <div style="font-weight:bold;font-size:13px;color:var(--text-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(p.nombre)}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${escH(p.cajon)} · ${fmtMoney(p.monto)} · ${p.frecuencia}</div>
+            </div>
+            <div style="display:flex;gap:5px;flex-shrink:0;margin-left:10px">
+              <button onclick="APP.pagosCorteReview[${i}].pagado=true;renderCorteModal()" style="padding:6px 10px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:bold;background:${p.pagado===true?'var(--success-alt)':'var(--bg-secondary)'};color:${p.pagado===true?'#fff':'var(--text-muted)'}">✅ Sí</button>
+              <button onclick="APP.pagosCorteReview[${i}].pagado=false;renderCorteModal()" style="padding:6px 10px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:bold;background:${p.pagado===false?'var(--danger)':'var(--bg-secondary)'};color:${p.pagado===false?'#fff':'var(--text-muted)'}">❌ No</button>
+            </div>
+          </div>`).join('')}
+        ${!todosRespondidos?`<p style="margin:8px 0 0 0;font-size:11px;color:var(--text-muted);text-align:center">Falta responder ${sinResponder} pago${sinResponder!==1?'s':''} ↑</p>`:'<p style="margin:8px 0 0 0;font-size:11px;color:var(--success-alt);text-align:center;font-weight:bold">✓ Revisión completa — continúa abajo</p>'}
+      </div>`;
+    }else{
+      reviewEl.innerHTML='';
+    }
+  }
+
+  // ── FASE 2: Cajones sobrantes (solo si review completa) ──
+  const pend=APP.cajonesCorte.filter(c=>!c.procesado);
+  if(listEl){
+    if(!todosRespondidos){
+      listEl.innerHTML='';fin.classList.add('hidden');
+      document.getElementById('corte-subtitle').textContent='Primero revisa los pagos programados arriba ↑';
+      return;
+    }
+    document.getElementById('corte-subtitle').textContent=pend.length?'Ahora revisa los cajones con saldo restante.':'¿Con cuánto dinero inicias el nuevo ciclo?';
+    listEl.innerHTML=pend.map(c=>{
+      const ri=APP.cajonesCorte.findIndex(x=>x.nombre===c.nombre&&!x.procesado);
+      return `<div style="padding:15px;border-radius:15px;border:1px solid var(--border-color);background:var(--bg-secondary);margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px"><b style="color:var(--text-main)">${escH(c.nombre)}</b><b style="color:var(--primary)">${fmtMoney(c.llenado)}</b></div>
+        <div style="display:flex;gap:10px">
+          <button onclick="procesarCorteCajon(${ri},'gastar')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--danger);background:var(--danger-light);color:var(--danger);font-weight:bold;cursor:pointer;font-size:13px">💸 Ya lo pagué / gasté</button>
+          <button onclick="procesarCorteCajon(${ri},'sobrante')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--success);background:var(--success-light);color:var(--success);font-weight:bold;cursor:pointer;font-size:13px">🔄 No lo gasté</button>
+        </div></div>`;
+    }).join('');
+  }
+  if(!pend.length&&todosRespondidos){
     fin.classList.remove('hidden');
     document.getElementById('corte-ingreso-input').value=APP.ingresoPendienteCorte.toFixed(2);
     document.getElementById('corte-btn').textContent=`🚀 Iniciar Ciclo con ${fmtMoney(APP.ingresoPendienteCorte)}`;
@@ -2399,9 +2444,21 @@ function finalizarCorte(){
   if(!tuvoImprevistos){ APP.rachaCiclos=(APP.rachaCiclos||0)+1; APP.ultimoCicloCompleto=new Date().toDateString(); }
   else APP.rachaCiclos=0;
   if(monto>0){const prev=APP.saldoActual;APP.saldoActual+=monto;registrarEnHistorial(`¡Inicio de Ciclo ${APP.cicloMaestro}!`,monto,'pago',prev,APP.saldoActual);}
+  // Procesar revisión de pagos del corte
+  const noPagados=(APP.pagosCorteReview||[]).filter(p=>p.pagado===false);
+  const siPagados=(APP.pagosCorteReview||[]).filter(p=>p.pagado===true);
+  const hoy=new Date();
+  // Registrar pagados en historial (informativo)
+  siPagados.forEach(p=>registrarEnHistorial('✅ Pago confirmado: '+p.nombre,p.monto,'gasto',APP.saldoActual,APP.saldoActual));
+  // Los no pagados → crearlos como evento urgente al inicio del nuevo ciclo
+  noPagados.forEach((p,idx)=>{
+    APP.eventosCalendario.push({id:Date.now()+idx+Math.random(),dia:hoy.getDate(),nombre:'⚠️ Pendiente: '+p.nombre,monto:p.monto,tipo:'gasto',frecuencia:'Único',mesCreacion:hoy.getMonth(),anioCreacion:hoy.getFullYear(),_source:'pendiente'});
+  });
+  APP.pagosCorteReview=[];
   closeModal('modal-corte');saveState();renderDashboard();
   const msg=APP.rachaCiclos>1?`\n🔥 ¡Racha activa: ${APP.rachaCiclos} ciclos consecutivos!`:'';
-  alert('✅ ¡Nuevo ciclo iniciado! Tu cascada se ha reiniciado con éxito.'+msg);
+  const pendMsg=noPagados.length>0?`\n⚠️ ${noPagados.length} pago${noPagados.length!==1?'s':''} pendiente${noPagados.length!==1?'s':''} añadido${noPagados.length!==1?'s':''} al calendario.`:'';
+  alert('✅ ¡Nuevo ciclo iniciado! Tu cascada se ha reiniciado con éxito.'+msg+pendMsg);
 }
 // ═══════════════════════════════════════════
 // INIT APP
