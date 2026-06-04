@@ -59,7 +59,15 @@ body.dark{
 .login-link{color:#f39c12;cursor:pointer;text-decoration:underline}
 .pwd-hint{font-size:11px;color:#666;line-height:1.4;background:#f8f9fa;padding:10px;border-radius:5px;border:1px solid #ddd}
 #view-onboarding{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
-.onb-modal{background:var(--bg-card);padding:40px 50px;border-radius:35px;box-shadow:0 25px 60px rgba(0,0,0,0.1);max-width:550px;width:100%;text-align:center;border:1px solid #e1e5ee;max-height:90vh;overflow-y:auto}
+.onb-modal{background:#fff;padding:40px 50px;border-radius:35px;box-shadow:0 25px 60px rgba(0,0,0,0.1);max-width:550px;width:100%;text-align:center;border:1px solid #e1e5ee;max-height:90vh;overflow-y:auto;
+  --bg-main:#f4f7f6;--bg-card:#fff;--bg-secondary:#f8f9fa;--bg-tertiary:#f1f2f6;
+  --text-main:#2f3542;--text-muted:#747d8c;--text-light:#a4b0be;
+  --border-color:#e1e5ee;--border-light:#dfe6e9;
+  --primary:#007bff;--primary-light:#eef3ff;
+  --success:#28a745;--success-light:#e6f4ea;--success-alt:#10ac84;
+  --danger:#dc3545;--danger-light:#ffebee;
+  --warning:#ffc107;--warning-light:#fff9e6;
+  color:#2f3542}
 .onb-progress-bar{width:100%;height:8px;background:#f1f2f6;border-radius:10px;margin-bottom:30px;overflow:hidden}
 .onb-progress-fill{height:100%;background:linear-gradient(90deg,#007bff,#00d2ff);transition:width 0.5s ease}
 .onb-title{color:var(--text-main);font-size:26px;margin:0 0 10px 0;font-weight:900}
@@ -183,6 +191,7 @@ body.dark .balance-amount{color:#10ac84}
         <div style="display:flex;align-items:center;gap:4px">
           <button onclick="navCalendar(-1)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:2px 5px;border-radius:6px">‹</button>
           <button onclick="navCalendar(1)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:2px 5px;border-radius:6px">›</button>
+          <span onclick="abrirCalendarioFullscreen()" style="font-size:11px;color:var(--primary);cursor:pointer;font-weight:bold;background:var(--primary-light);padding:3px 8px;border-radius:10px">🔍 Ampliar</span>
           <span onclick="openFullHistory()" style="font-size:11px;color:var(--primary);cursor:pointer;font-weight:bold;background:var(--primary-light);padding:3px 8px;border-radius:10px">Ver Todo</span>
         </div>
       </div>
@@ -300,6 +309,7 @@ body.dark .balance-amount{color:#10ac84}
     <button class="profile-action-btn" onclick="openMetasView()">🎯 Mis Metas y Herramientas</button>
     <hr style="border:0;border-top:1px solid var(--border-color);margin:10px 0">
     <button class="profile-action-btn" onclick="openEditProfile()">✏️ Editar Perfil y Contraseña</button>
+    <button class="profile-action-btn" onclick="closeProfileSidebar();abrirConfigAvanzada(null)">📅 Fechas de Pago</button>
     <button class="profile-action-btn" onclick="openReconfiguracion()">⚙️ Reconfigurar Finanzas Base</button>
     <div style="margin-top:auto;padding-top:40px">
       <button onclick="handleLogout()" style="width:100%;padding:20px;background:var(--danger-light);color:var(--danger);border:1px solid var(--danger-light);border-radius:15px;font-weight:bold;font-size:16px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer">🚪 Cerrar Sesión</button>
@@ -330,7 +340,7 @@ body.dark .balance-amount{color:#10ac84}
     <div id="add-cajon-reto" class="hidden">
       <input type="text" id="reto-nombre" placeholder="¿Qué capricho quieres? (Ej. Tenis)" class="input-modal">
       <div style="display:flex;gap:10px;margin-bottom:15px">
-        <div style="flex:1;position:relative"><span style="position:absolute;left:10px;top:15px;color:var(--text-light)">$</span><input type="number" min="0" id="reto-costo-total" placeholder="Costo Total" class="input-modal" style="padding-left:25px;margin:0" onkeydown="blockInvalid(event)" oninput="renderRetoEvaluacion()"></div>
+        <div style="flex:1;position:relative"><span style="position:absolute;left:10px;top:15px;color:var(--text-light);pointer-events:none">$</span><input type="number" min="0" id="reto-costo-total" placeholder="Costo Total" class="input-modal" style="padding-left:25px;margin:0" onkeydown="blockInvalid(event)" oninput="renderRetoEvaluacion()"></div>
         <div style="flex:1;position:relative"><input type="number" min="1" id="reto-ciclos" placeholder="Ciclos" class="input-modal" style="padding-right:50px;margin:0" onkeydown="blockInvalid(event)" oninput="renderRetoEvaluacion()"><span style="position:absolute;right:10px;top:15px;color:var(--text-light);font-size:12px">ciclos</span></div>
       </div>
       <div id="reto-evaluacion"></div>
@@ -376,7 +386,7 @@ body.dark .balance-amount{color:#10ac84}
     <select id="edit-cajon-frec" class="input-modal"><option>Único</option><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option><option>Anual</option></select>
     <label class="label-modal">Monto Total de la Meta</label>
     <div style="position:relative;margin-bottom:15px">
-      <span style="position:absolute;left:15px;top:15px;font-weight:bold;color:var(--success)">$</span>
+      <span style="position:absolute;left:15px;top:15px;font-weight:bold;color:var(--success);pointer-events:none">$</span>
       <input type="number" min="0" id="edit-cajon-monto" class="input-modal" style="padding-left:35px;margin:0;font-size:18px;font-weight:bold" onkeydown="blockInvalid(event)">
     </div>
     <div id="subgastos-section" class="hidden">
@@ -399,8 +409,8 @@ body.dark .balance-amount{color:#10ac84}
     <label class="label-modal">Saldo Físico Actual</label>
     <input type="number" min="0" id="reconfig-saldo" class="input-modal" style="font-size:20px;font-weight:bold" onkeydown="blockInvalid(event)">
     <div style="display:flex;gap:15px">
-      <div style="flex:1"><label class="label-modal">Ciclo Maestro</label><select id="reconfig-ciclo" class="input-modal"><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option></select></div>
-      <div style="flex:1"><label class="label-modal">Día de Cobro</label><input type="number" min="1" max="31" id="reconfig-dia" class="input-modal" value="1"></div>
+      <div style="flex:1"><label class="label-modal">Ciclo Maestro</label><select id="reconfig-ciclo" class="input-modal" onchange="renderReconfigDia(true)"><option>Diario</option><option>Semanal</option><option>Quincenal</option><option>Mensual</option></select></div>
+      <div id="reconfig-dia-container" style="flex:1"></div>
     </div>
     <label class="label-modal">Tus Ingresos</label>
     <div id="reconfig-ingresos-list"></div>
@@ -438,7 +448,7 @@ body.dark .balance-amount{color:#10ac84}
     <div id="corte-finalize" class="hidden">
       <div style="background:var(--primary-light);padding:20px;border-radius:15px;text-align:center;margin-bottom:15px;border:1px solid var(--primary)">
         <h4 style="margin:0 0 10px 0;color:var(--primary)">¿Con cuánto dinero inicias este ciclo?</h4>
-        <div style="position:relative"><span style="position:absolute;left:15px;top:50%;transform:translateY(-50%);font-weight:bold;color:var(--primary)">$</span><input type="number" min="0" id="corte-ingreso-input" class="input-modal" style="padding-left:35px;margin:0;font-size:20px;font-weight:bold;color:var(--primary);border-color:var(--primary)" onkeydown="blockInvalid(event)"></div>
+        <div style="position:relative"><span style="position:absolute;left:15px;top:50%;transform:translateY(-50%);font-weight:bold;color:var(--primary);pointer-events:none">$</span><input type="number" min="0" id="corte-ingreso-input" class="input-modal" style="padding-left:35px;margin:0;font-size:20px;font-weight:bold;color:var(--primary);border-color:var(--primary)" onkeydown="blockInvalid(event)"></div>
       </div>
       <button onclick="finalizarCorte()" class="btn-primary" id="corte-btn">Iniciar Ciclo</button>
     </div>
@@ -508,6 +518,65 @@ body.dark .balance-amount{color:#10ac84}
     <div id="proyeccion-content" style="max-width:900px;margin:0 auto"></div>
   </div>
 
+
+  <!-- Fullscreen: Configuración Avanzada de Fechas de Pago -->
+  <!-- Fullscreen: Calendario Grande -->
+  <div id="fullscreen-calendario" class="fullscreen-view hidden">
+    <div style="max-width:1100px;margin:0 auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;flex-wrap:wrap;gap:15px">
+        <div>
+          <h2 style="margin:0;color:var(--text-main)">📅 Calendario</h2>
+          <p style="margin:4px 0 0 0;font-size:13px;color:var(--text-muted)">Haz clic en cualquier día para ver o añadir alertas.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onclick="navCalendarioFS(-1)" style="background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-main);width:40px;height:40px;border-radius:12px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">‹</button>
+          <span id="cal-fs-label" style="font-size:20px;font-weight:bold;color:var(--text-main);min-width:190px;text-align:center"></span>
+          <button onclick="navCalendarioFS(1)" style="background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-main);width:40px;height:40px;border-radius:12px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">›</button>
+          <button onclick="document.getElementById('fullscreen-calendario').classList.add('hidden')" style="background:var(--danger-light);color:var(--danger);border:none;padding:10px 22px;border-radius:12px;font-weight:bold;cursor:pointer;margin-left:5px">✕ Cerrar</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:18px;padding:12px 18px;background:var(--bg-card);border-radius:15px;border:1px solid var(--border-color)">
+        <span style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-muted)"><span style="width:13px;height:13px;border-radius:4px;background:var(--success);flex-shrink:0;display:inline-block"></span>Cobro / Ingreso</span>
+        <span style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-muted)"><span style="width:13px;height:13px;border-radius:4px;background:var(--danger);flex-shrink:0;display:inline-block"></span>Gasto</span>
+        <span style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-muted)"><span style="width:13px;height:13px;border-radius:4px;background:linear-gradient(135deg,var(--success) 50%,var(--danger) 50%);flex-shrink:0;display:inline-block"></span>Ambos</span>
+        <span style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-muted)"><span style="width:13px;height:13px;border-radius:50%;background:var(--primary);flex-shrink:0;display:inline-block"></span>Hoy</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px;text-align:center">
+        <div style="font-size:12px;font-weight:bold;color:var(--text-light);padding:6px">Dom</div>
+        <div style="font-size:12px;font-weight:bold;color:var(--text-light);padding:6px">Lun</div>
+        <div style="font-size:12px;font-weight:bold;color:var(--text-light);padding:6px">Mar</div>
+        <div style="font-size:12px;font-weight:bold;color:var(--text-light);padding:6px">Mié</div>
+        <div style="font-size:12px;font-weight:bold;color:var(--text-light);padding:6px">Jue</div>
+        <div style="font-size:12px;font-weight:bold;color:var(--text-light);padding:6px">Vie</div>
+        <div style="font-size:12px;font-weight:bold;color:var(--text-light);padding:6px">Sáb</div>
+      </div>
+      <div id="cal-fs-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px"></div>
+      <div id="cal-fs-eventos" style="margin-top:30px"></div>
+    </div>
+  </div>
+
+  <div id="fullscreen-config-avanzada" class="fullscreen-view hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;max-width:900px;margin-left:auto;margin-right:auto">
+      <div>
+        <h2 style="color:var(--primary);margin:0">📅 Fechas de Pago</h2>
+        <p style="margin:5px 0 0 0;color:var(--text-muted);font-size:14px">Configura cuándo se paga cada gasto para verlos en el calendario y recordatorios.</p>
+      </div>
+      <button onclick="document.getElementById('fullscreen-config-avanzada').classList.add('hidden')" style="background:var(--danger-light);color:var(--danger);border:none;padding:12px 20px;border-radius:15px;font-weight:bold;cursor:pointer">✕ Cerrar</button>
+    </div>
+    <div id="config-avanzada-content" style="max-width:900px;margin:0 auto;padding-bottom:140px"></div>
+  </div>
+
+  <!-- Modal: Prompt Configuración Avanzada -->
+  <div id="modal-config-prompt" class="modal-center hidden" style="text-align:center;max-width:420px">
+    <div style="font-size:50px;margin-bottom:15px">📅</div>
+    <h2 style="margin:0 0 12px 0;color:var(--text-main)">¿Configurar fechas de pago?</h2>
+    <p style="color:var(--text-muted);font-size:15px;line-height:1.5;margin-bottom:25px">Usaste la calculadora para desglosar tus gastos. ¿Quieres indicar <b>exactamente cuándo se paga cada uno</b>? Esto los integrará al calendario y a los recordatorios automáticos.</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button onclick="closeModal('modal-config-prompt');abrirConfigAvanzada(null)" style="background:var(--primary);color:#fff;border:none;border-radius:15px;padding:18px;font-weight:bold;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">✅ Sí, configurar ahora</button>
+      <button onclick="closeModal('modal-config-prompt')" style="background:var(--bg-secondary);color:var(--text-muted);border:1px solid var(--border-color);border-radius:15px;padding:14px;font-weight:bold;font-size:15px;cursor:pointer">Después, gracias</button>
+    </div>
+  </div>
+
 </div><!-- end view-dashboard -->
 
 <script>
@@ -527,6 +596,8 @@ const APP = {
   cajonesCorte:[], ingresoPendienteCorte:0,
   // Notas por cajón
   notasCajones:{},
+  // Agenda de fechas de pago por cajón
+  itemsAgenda:{},
   // Gamificación
   logros:[], rachaCiclos:0, ultimoCicloCompleto:'',
   // Historial filtros
@@ -574,7 +645,8 @@ function saveState(){
       ultimaFechaReinicio:APP.ultimaFechaReinicio, ingresos:APP.ingresos,
       configuraciones:APP.cajones, ordenCajones:APP.ordenCajones,
       notasCajones:APP.notasCajones, logros:APP.logros,
-      rachaCiclos:APP.rachaCiclos, ultimoCicloCompleto:APP.ultimoCicloCompleto
+      rachaCiclos:APP.rachaCiclos, ultimoCicloCompleto:APP.ultimoCicloCompleto,
+      itemsAgenda:APP.itemsAgenda||{}
     },
     historial:APP.historial, agenda:APP.eventosCalendario
   };
@@ -590,7 +662,8 @@ async function syncToCloud(){
       configGlobal:{saldoActual:APP.saldoActual, boveda:APP.boveda, cajaFuerte:APP.cajaFuerte,
         cicloMaestro:APP.cicloMaestro, diaInicioCiclo:APP.diaInicioCiclo,
         ultimaFechaReinicio:APP.ultimaFechaReinicio, ingresos:APP.ingresos,
-        configuraciones:APP.cajones, ordenCajones:APP.ordenCajones},
+        configuraciones:APP.cajones, ordenCajones:APP.ordenCajones,
+        itemsAgenda:APP.itemsAgenda||{}},
       historial:APP.historial, agenda:APP.eventosCalendario
     }})
   });
@@ -610,6 +683,7 @@ function loadStateFromDB(){
   APP.historial=p.historial||[]; APP.eventosCalendario=p.agenda||[];
   APP.notasCajones=cfg.notasCajones||{}; APP.logros=cfg.logros||[];
   APP.rachaCiclos=cfg.rachaCiclos||0; APP.ultimoCicloCompleto=cfg.ultimoCicloCompleto||'';
+  APP.itemsAgenda=cfg.itemsAgenda||{};
   return hasConfig;
 }
 
@@ -727,7 +801,7 @@ function renderOnbStep(){
       <label style="font-size:14px;font-weight:bold;color:#856404;margin-bottom:10px;display:block">⚠️ Dinero Disponible Hoy</label>
       <p style="margin:0 0 15px 0;font-size:13px;color:#856404;line-height:1.4">¿Cuánto tienes <b>HOY</b> para gastar hasta tu próximo pago? (Sin ahorros).</p>
       <div style="position:relative">
-        <span style="position:absolute;left:20px;top:18px;font-size:20px;font-weight:bold;color:#28a745">$</span>
+        <span style="position:absolute;left:20px;top:18px;font-size:20px;font-weight:bold;color:#28a745;pointer-events:none">$</span>
         <input type="number" min="0" class="onb-input" style="padding-left:40px;font-size:24px;color:#28a745;margin:0;border:1px solid #ffeeba" placeholder="0.00" value="${ONB.saldo}" oninput="ONB.saldo=this.value" onkeydown="blockInvalid(event)">
       </div>
     </div>
@@ -736,7 +810,7 @@ function renderOnbStep(){
     const rows=ONB.ingresos.map((ing,i)=>`
       <div style="display:flex;gap:10px;width:100%;margin-bottom:15px;background:#f8f9fa;padding:15px;border-radius:15px;border:1px solid #e1e5ee;box-sizing:border-box">
         <div style="position:relative;flex:2">
-          <span style="position:absolute;left:12px;top:14px;font-weight:bold;color:#28a745">$</span>
+          <span style="position:absolute;left:12px;top:14px;font-weight:bold;color:#28a745;pointer-events:none">$</span>
           <input type="number" min="0" class="onb-input" style="padding-left:30px;margin:0;border:none;background:#fff" placeholder="Monto" value="${ing.monto}" onkeydown="blockInvalid(event)" oninput="ONB.ingresos[${i}].monto=this.value">
         </div>
         <select class="onb-input" style="flex:2;margin:0;border:none;background:#fff;cursor:pointer" onchange="ONB.ingresos[${i}].frecuencia=this.value">
@@ -855,6 +929,13 @@ function toggleCalcOnb(key){
 }
 function aplicarCalculoOnb(target){
   const total=calcSumaCalc();
+  // Guardar ítems para configuración avanzada
+  const items=ONB.itemsCalc.filter(it=>it.monto&&parseFloat(it.monto)>0);
+  if(items.length>0){
+    if(!ONB.savedCalcItems) ONB.savedCalcItems={};
+    const key=typeof target==='string'?target:ONB.cajonesExtra[target].nombre;
+    ONB.savedCalcItems[key]=items.map(it=>({id:Date.now()+Math.random(),nombre:it.concepto||'Gasto',monto:parseFloat(it.monto)||0,frecuencia:it.frecuencia,diaPago:null,diaSemana:null}));
+  }
   if(typeof target==='string') ONB.admins[target]=total.toFixed(2);
   else ONB.cajonesExtra[target].monto=total.toFixed(2);
   ONB.calculadoraAbierta=null; renderOnbStep();
@@ -922,6 +1003,12 @@ function handleOnbFinalize(){
   applyTheme();
   renderDashboard();
   showView('view-dashboard');
+  // Si el usuario usó la calculadora, ofrecer configuración avanzada de fechas
+  if(ONB.savedCalcItems&&Object.keys(ONB.savedCalcItems).length>0){
+    APP.itemsAgenda={...ONB.savedCalcItems};
+    saveState();
+    setTimeout(()=>mostrarPromptConfigAvanzada(),1000);
+  }
 }
 
 
@@ -952,6 +1039,7 @@ async function initDashboard(){
       APP.historial=d.historial||[]; APP.eventosCalendario=d.agenda||[];
       APP.notasCajones=c.notasCajones||{}; APP.logros=c.logros||[];
       APP.rachaCiclos=c.rachaCiclos||0; APP.ultimoCicloCompleto=c.ultimoCicloCompleto||'';
+      APP.itemsAgenda=c.itemsAgenda||{};
       isFirstTime=false;
     } else { isFirstTime=!loadStateFromDB(); }
   } catch { isFirstTime=!loadStateFromDB(); }
@@ -1065,6 +1153,31 @@ function navCalendar(dir){
   else if(APP.mesActual<0){APP.mesActual=11;APP.anioActual--;}
   renderCalendar();
 }
+// Devuelve true si un ingreso cae en la fecha dada.
+// Si el ingreso no tiene día propio, usa diaInicioCiclo cuando la frecuencia coincide con el ciclo maestro.
+function checkDiaIngreso(ing, fv){
+  if(ing.frecuencia==='Diario') return true;
+  // Día efectivo: específico del ingreso o fallback al diaInicioCiclo
+  let dEff=ing.dia;
+  if(dEff===null||dEff===undefined||dEff===''){
+    if(ing.frecuencia===APP.cicloMaestro) dEff=APP.diaInicioCiclo;
+    else return false; // Frecuencia distinta al ciclo y sin día → no mostrar
+  }
+  const d=parseInt(dEff);
+  if(isNaN(d)) return false;
+  if(ing.frecuencia==='Semanal') return fv.getDay()===d;
+  if(ing.frecuencia==='Mensual') return fv.getDate()===d;
+  if(ing.frecuencia==='Quincenal') return fv.getDate()===d||fv.getDate()===Math.min(d+15,28);
+  return false;
+}
+// Devuelve array de "eventos" virtuales de ingresos para un día dado
+function getIngresosParaDia(dia, mes, anio){
+  const fv=new Date(anio,mes,dia);
+  return (APP.ingresos||[])
+    .filter(ing=>checkDiaIngreso(ing,fv))
+    .map(ing=>({id:'_ing_'+ing.nombre+dia,dia,nombre:'💰 '+(ing.nombre||'Ingreso')+(ing.monto?' · '+fmtMoney(ing.monto):''),monto:parseFloat(ing.monto)||0,tipo:'pago',frecuencia:ing.frecuencia,_esIngreso:true}));
+}
+
 function checkEventosDia(dia){
   const fv=new Date(APP.anioActual,APP.mesActual,dia);
   const pl=APP.eventosCalendario.filter(ev=>{
@@ -1077,7 +1190,8 @@ function checkEventosDia(dia){
     return false;
   });
   const re=APP.historial.filter(h=>h.dia===dia&&h.mes===APP.mesActual&&h.anio===APP.anioActual);
-  return{tienePago:pl.some(e=>e.tipo==='pago')||re.some(r=>r.tipo==='pago'),tieneGasto:pl.some(e=>e.tipo==='gasto')||re.some(r=>r.tipo==='gasto')};
+  const tieneIngresoDia=(APP.ingresos||[]).some(ing=>checkDiaIngreso(ing,fv));
+  return{tienePago:pl.some(e=>e.tipo==='pago')||re.some(r=>r.tipo==='pago')||tieneIngresoDia,tieneGasto:pl.some(e=>e.tipo==='gasto')||re.some(r=>r.tipo==='gasto')};
 }
 function handleDayClick(dia){
   APP.currentEventDay=dia;APP.isEditingEvent=false;APP.editingEventId=null;APP.currentEventTipo='gasto';
@@ -1136,6 +1250,7 @@ function guardarEvento(){
   if(APP.isEditingEvent) APP.eventosCalendario=APP.eventosCalendario.map(e=>e.id===APP.editingEventId?{...e,nombre,monto,tipo:APP.currentEventTipo,frecuencia:frec}:e);
   else APP.eventosCalendario.push({id:Date.now(),dia:APP.currentEventDay,nombre,monto,tipo:APP.currentEventTipo,frecuencia:frec,mesCreacion:APP.mesActual,anioCreacion:APP.anioActual});
   cerrarModalEvento();saveState();renderDashboard();
+  if(!document.getElementById('fullscreen-calendario').classList.contains('hidden')) renderCalendarioFS();
 }
 function cerrarModalEvento(){APP.isEditingEvent=false;APP.editingEventId=null;closeModal('modal-evento');}
 function eliminarEventoTotal(){
@@ -1207,6 +1322,7 @@ function renderCascade(ec){
       <div class="progress-bg"><div class="progress-fill" style="width:${isSeg?100:cj.porcentaje}%;background:${fillColor}"></div></div>
       ${acord}${secBtn}
       ${APP.notasCajones[cj.nombre]?`<div style="margin-top:10px;padding:10px 14px;background:var(--warning-light);border-radius:10px;border-left:3px solid var(--warning);font-size:13px;color:var(--text-main);display:flex;justify-content:space-between;align-items:center;gap:8px"><span>📝 ${escH(APP.notasCajones[cj.nombre])}</span><button onclick="abrirNotaCajon('${cj.nombre.replace(/'/g,"\'")}')" style="background:none;border:none;cursor:pointer;color:var(--warning);font-size:12px;flex-shrink:0">✏️</button></div>`:`<button onclick="abrirNotaCajon('${cj.nombre.replace(/'/g,"\'")}')" style="background:none;border:none;cursor:pointer;color:var(--text-light);font-size:11px;margin-top:8px;display:block">+ añadir nota</button>`}
+      ${(!cj.nombre.startsWith('Reto:')&&!cj.nombre.startsWith('Meta:')&&cj.nombre!=='Libre'&&c.frecuencia!=='Imprevisto_Pagado')?`<button onclick="abrirConfigAvanzada('${cj.nombre.replace(/'/g,"\\'")}')" style="background:none;border:1px dashed var(--primary);color:var(--primary);font-size:11px;margin-top:6px;padding:4px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px">📅 ${((APP.itemsAgenda||{})[cj.nombre]||[]).length>0?`${((APP.itemsAgenda||{})[cj.nombre]||[]).length} gasto(s) · `:''}Fechas de pago</button>`:''}
     </div>`;
   });
   const lib=ec.find(c=>c.nombre==='Libre');
@@ -1243,17 +1359,17 @@ function renderProfileSidebar(){
 function openModal(id){document.getElementById('overlay').classList.remove('hidden');document.getElementById(id).classList.remove('hidden');}
 function closeModal(id){
   document.getElementById(id).classList.add('hidden');
-  const any=['modal-add-cajon','modal-imprevisto','modal-evento','modal-edit-monto','modal-reconfig','modal-edit-profile','modal-corte'].some(m=>{const e=document.getElementById(m);return e&&!e.classList.contains('hidden');});
+  const any=['modal-add-cajon','modal-imprevisto','modal-evento','modal-edit-monto','modal-reconfig','modal-edit-profile','modal-corte','modal-config-prompt'].some(m=>{const e=document.getElementById(m);return e&&!e.classList.contains('hidden');});
   if(!any&&document.getElementById('profile-sidebar').classList.contains('closed')) document.getElementById('overlay').classList.add('hidden');
 }
 function closeAllModals(){
-  ['modal-add-cajon','modal-imprevisto','modal-evento','modal-edit-monto','modal-reconfig','modal-edit-profile','modal-corte'].forEach(m=>{const e=document.getElementById(m);if(e) e.classList.add('hidden');});
+  ['modal-add-cajon','modal-imprevisto','modal-evento','modal-edit-monto','modal-reconfig','modal-edit-profile','modal-corte','modal-config-prompt'].forEach(m=>{const e=document.getElementById(m);if(e) e.classList.add('hidden');});
   closeProfileSidebar();
 }
 function openProfileSidebar(){renderProfileSidebar();document.getElementById('profile-sidebar').classList.remove('closed');document.getElementById('overlay').classList.remove('hidden');}
 function closeProfileSidebar(){
   document.getElementById('profile-sidebar').classList.add('closed');
-  const any=['modal-add-cajon','modal-imprevisto','modal-evento','modal-edit-monto','modal-reconfig','modal-edit-profile','modal-corte'].some(m=>{const e=document.getElementById(m);return e&&!e.classList.contains('hidden');});
+  const any=['modal-add-cajon','modal-imprevisto','modal-evento','modal-edit-monto','modal-reconfig','modal-edit-profile','modal-corte','modal-config-prompt'].some(m=>{const e=document.getElementById(m);return e&&!e.classList.contains('hidden');});
   if(!any) document.getElementById('overlay').classList.add('hidden');
 }
 // ═══════════════════════════════════════════
@@ -1360,7 +1476,12 @@ function moverCajon(index,dir){
 }
 function abrirEdicionMonto(nombre){
   if(isAdmin(nombre)&&!nombre.startsWith('Ahorro')){if(prompt('🔒 NIP requerido:')!==APP.pinSeguridad) return alert('❌ NIP Incorrecto.');}
-  APP.editMontoNombreOriginal=nombre;APP.subGastos=[{nombre:'',monto:'',frecuencia:'Mensual'}];
+  APP.editMontoNombreOriginal=nombre;
+  // Cargar items guardados de itemsAgenda si existen, si no iniciar vacío
+  const itemsSaved=(APP.itemsAgenda||{})[nombre];
+  APP.subGastos=itemsSaved&&itemsSaved.length>0
+    ? itemsSaved.map(it=>({nombre:it.nombre||'',monto:it.monto||'',frecuencia:it.frecuencia||'Mensual'}))
+    : [{nombre:'',monto:'',frecuencia:'Mensual'}];
   document.getElementById('edit-monto-title').textContent=nombre;
   document.getElementById('edit-cajon-nombre-input').value=nombre;
   document.getElementById('edit-cajon-frec').value=APP.cajones[nombre]?.frecuencia||'Mensual';
@@ -1375,10 +1496,12 @@ function abrirEdicionMonto(nombre){
 function renderSubGastosList(){
   document.getElementById('subgastos-list').innerHTML=APP.subGastos.map((s,i)=>`
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <input type="text" placeholder="Concepto" value="${escH(s.nombre)}" oninput="APP.subGastos[${i}].nombre=this.value" style="flex:2;padding:10px;border-radius:10px;border:1px solid var(--border-light);outline:none;font-size:14px;background:var(--bg-card);color:var(--text-main)">
-      <div style="position:relative;flex:1.5"><span style="position:absolute;left:10px;top:10px;font-size:14px;color:var(--text-light)">$</span>
-      <input type="number" min="0" value="${s.monto}" oninput="APP.subGastos[${i}].monto=this.value" onkeydown="blockInvalid(event)" style="width:100%;padding:10px 10px 10px 25px;border-radius:10px;border:1px solid var(--border-light);outline:none;font-size:14px;background:var(--bg-card);color:var(--text-main)"></div>
-      <select oninput="APP.subGastos[${i}].frecuencia=this.value" style="flex:1.5;padding:10px;border-radius:10px;border:1px solid var(--border-light);outline:none;font-size:14px;background:var(--bg-card);color:var(--text-main)">
+      <input type="text" placeholder="Concepto" value="${escH(s.nombre)}" oninput="APP.subGastos[${i}].nombre=this.value" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid var(--border-light);outline:none;font-size:13px;background:var(--bg-card);color:var(--text-main)">
+      <div style="flex:1;min-width:70px;display:flex;align-items:center;border:1px solid var(--border-light);border-radius:10px;background:var(--bg-card);overflow:hidden">
+        <span style="padding:0 5px 0 10px;font-size:13px;color:var(--text-light);flex-shrink:0">$</span>
+        <input type="text" inputmode="decimal" placeholder="0" value="${s.monto||''}" oninput="this.value=this.value.replace(/[^0-9.]/g,'');APP.subGastos[${i}].monto=parseFloat(this.value)||0" style="flex:1;padding:10px 8px 10px 0;border:none;outline:none;font-size:13px;background:transparent;color:var(--text-main);min-width:0;width:100%">
+      </div>
+      <select oninput="APP.subGastos[${i}].frecuencia=this.value" style="flex:1;min-width:0;padding:10px 4px;border-radius:10px;border:1px solid var(--border-light);outline:none;font-size:13px;background:var(--bg-card);color:var(--text-main)">
         ${['Diario','Semanal','Quincenal','Mensual','Anual'].map(f=>`<option${s.frecuencia===f?' selected':''}>${f}</option>`).join('')}
       </select>
       ${APP.subGastos.length>1?`<button onclick="removeSubGasto(${i})" style="background:none;border:none;color:var(--text-light);cursor:pointer;font-size:18px;padding:5px">✕</button>`:''}
@@ -1401,6 +1524,19 @@ function guardarEdicionMonto(){
     APP.cajones[nuevoN]={...APP.cajones[viejoN],monto,frecuencia:frec};delete APP.cajones[viejoN];
     const idx=APP.ordenCajones.indexOf(viejoN);if(idx!==-1) APP.ordenCajones[idx]=nuevoN;
   }else APP.cajones[viejoN]={...APP.cajones[viejoN],monto,frecuencia:frec};
+  // Guardar subgastos en itemsAgenda preservando fechas ya configuradas
+  const cajonKey=nuevoN!==viejoN?nuevoN:viejoN;
+  const itemsConDatos=APP.subGastos.filter(sg=>sg.nombre||parseFloat(sg.monto)>0);
+  if(itemsConDatos.length>0){
+    if(!APP.itemsAgenda) APP.itemsAgenda={};
+    const existentes=(APP.itemsAgenda[viejoN]||[]);
+    APP.itemsAgenda[cajonKey]=itemsConDatos.map(sg=>{
+      // Buscar item previo con mismo nombre para conservar su diaPago/diaSemana
+      const prev=existentes.find(e=>e.nombre===sg.nombre);
+      return {id:prev?.id||Date.now()+Math.random(),nombre:sg.nombre,monto:parseFloat(sg.monto)||0,frecuencia:sg.frecuencia,diaPago:prev?.diaPago||null,diaSemana:prev?.diaSemana??null};
+    });
+    if(nuevoN!==viejoN&&APP.itemsAgenda[viejoN]) delete APP.itemsAgenda[viejoN];
+  }
   closeModal('modal-edit-monto');saveState();renderDashboard();
 }
 function borrarCajon(nombre,llenadoActual=0,autoRefund=false){
@@ -1450,30 +1586,85 @@ function completarReto(nombre,fromRetosScreen=false){
 // ═══════════════════════════════════════════
 // RECONFIGURAR & EDITAR PERFIL
 // ═══════════════════════════════════════════
+// Devuelve el primer día-del-mes de este mes que caiga en el día-de-semana dado (0=Dom...6=Sáb)
+function obtenerDiaMesParaSemana(diaOfWeek){
+  const hoy=new Date();
+  for(let d=1;d<=7;d++) if(new Date(hoy.getFullYear(),hoy.getMonth(),d).getDay()===diaOfWeek) return d;
+  return 1;
+}
+
+const DIAS_SEMANA_RECONFIG=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+function renderReconfigDia(reset){
+  const ciclo=document.getElementById('reconfig-ciclo')?.value||'Mensual';
+  const cont=document.getElementById('reconfig-dia-container');
+  if(!cont) return;
+  // Valor actual: si es el mismo ciclo que en APP, usar su diaInicioCiclo; si cambiaron, resetear a default
+  const mismoCiclo=(!reset&&ciclo===APP.cicloMaestro);
+  const curVal=mismoCiclo?APP.diaInicioCiclo:'1';
+  if(ciclo==='Diario'){
+    cont.innerHTML='';
+    return;
+  }
+  if(ciclo==='Semanal'){
+    cont.innerHTML=`<label class="label-modal">Día de la Semana</label>
+      <select id="reconfig-dia" class="input-modal">
+        ${DIAS_SEMANA_RECONFIG.map((d,i)=>`<option value="${i}"${curVal==i?' selected':''}>${d}</option>`).join('')}
+      </select>`;
+  }else{
+    cont.innerHTML=`<label class="label-modal">Día de Cobro</label>
+      <input type="number" min="1" max="31" id="reconfig-dia" class="input-modal" value="${curVal}">`;
+  }
+}
+
 let reconfigIngresos=[];
 function openReconfiguracion(){
   closeProfileSidebar();
   document.getElementById('reconfig-saldo').value=APP.saldoActual;
   document.getElementById('reconfig-ciclo').value=APP.cicloMaestro;
-  document.getElementById('reconfig-dia').value=APP.diaInicioCiclo;
-  reconfigIngresos=JSON.parse(JSON.stringify(APP.ingresos));renderReconfigIngresos();openModal('modal-reconfig');
+  reconfigIngresos=APP.ingresos.map(i=>({nombre:'',dia:null,...JSON.parse(JSON.stringify(i))}));renderReconfigIngresos();
+  openModal('modal-reconfig');
+  // Render día selector DESPUÉS de abrir el modal (el DOM ya existe)
+  setTimeout(()=>renderReconfigDia(false),50);
 }
 function renderReconfigIngresos(){
-  document.getElementById('reconfig-ingresos-list').innerHTML=reconfigIngresos.map((ing,i)=>`
-    <div style="display:flex;gap:10px;margin-bottom:10px">
-      <input type="number" min="0" value="${ing.monto}" oninput="reconfigIngresos[${i}].monto=this.value" class="input-modal" style="flex:2;margin:0" onkeydown="blockInvalid(event)">
-      <select oninput="reconfigIngresos[${i}].frecuencia=this.value" class="input-modal" style="flex:2;margin:0">
-        ${['Diario','Semanal','Quincenal','Mensual'].map(f=>`<option${ing.frecuencia===f?' selected':''}>${f}</option>`).join('')}
-      </select>
-      ${reconfigIngresos.length>1?`<button onclick="reconfigIngresos.splice(${i},1);renderReconfigIngresos()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:20px;padding:5px">🗑️</button>`:''}
-    </div>`).join('');
+  const DSEM=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  document.getElementById('reconfig-ingresos-list').innerHTML=reconfigIngresos.map((ing,i)=>{
+    let diaHtml='';
+    if(ing.frecuencia==='Diario'){
+      diaHtml=''; // cada día, no se necesita
+    }else if(ing.frecuencia==='Semanal'){
+      diaHtml=`<select oninput="reconfigIngresos[${i}].dia=this.value" class="input-modal" style="flex:1.2;margin:0">
+        <option value="">Día</option>
+        ${DSEM.map((d,idx)=>`<option value="${idx}"${ing.dia==idx?' selected':''}>${d}</option>`).join('')}
+      </select>`;
+    }else{
+      const mx=ing.frecuencia==='Quincenal'?15:31;
+      const ph=ing.frecuencia==='Quincenal'?'Día 1-15':'Día 1-31';
+      diaHtml=`<input type="number" min="1" max="${mx}" placeholder="${ph}" value="${ing.dia||''}" oninput="reconfigIngresos[${i}].dia=parseInt(this.value)||null" onkeydown="blockInvalid(event)" class="input-modal" style="flex:1;margin:0">`;
+    }
+    return `<div style="background:var(--bg-secondary);border-radius:12px;border:1px solid var(--border-light);padding:12px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" placeholder="Nombre (ej. Sueldo, Freelance)" value="${escH(ing.nombre||'')}" oninput="reconfigIngresos[${i}].nombre=this.value" class="input-modal" style="flex:1;margin:0">
+        ${reconfigIngresos.length>1?`<button onclick="reconfigIngresos.splice(${i},1);renderReconfigIngresos()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:20px;padding:0 5px">🗑️</button>`:''}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" min="0" value="${ing.monto}" oninput="reconfigIngresos[${i}].monto=this.value" class="input-modal" style="flex:1.5;margin:0" onkeydown="blockInvalid(event)" placeholder="Monto">
+        <select oninput="reconfigIngresos[${i}].frecuencia=this.value;renderReconfigIngresos()" class="input-modal" style="flex:1.5;margin:0">
+          ${['Diario','Semanal','Quincenal','Mensual'].map(f=>`<option${ing.frecuencia===f?' selected':''}>${f}</option>`).join('')}
+        </select>
+        ${diaHtml}
+      </div>
+      ${ing.frecuencia==='Quincenal'&&ing.dia?`<p style="margin:6px 0 0 0;font-size:11px;color:var(--text-muted)">💡 Cobro los días ${ing.dia} y ${Math.min(parseInt(ing.dia)+15,28)} de cada mes</p>`:''}
+    </div>`;
+  }).join('');
 }
-function addReconfigIngreso(){reconfigIngresos.push({monto:'',frecuencia:'Mensual'});renderReconfigIngresos();}
+function addReconfigIngreso(){reconfigIngresos.push({monto:'',frecuencia:'Mensual',nombre:'',dia:null});renderReconfigIngresos();}
 function handleGuardarReconfiguracion(){
   if(!reconfigIngresos.length||reconfigIngresos.some(i=>!i.monto)) return alert('⚠️ Completa todos los ingresos antes de guardar.');
   APP.saldoActual=parseFloat(document.getElementById('reconfig-saldo').value)||APP.saldoActual;
   APP.cicloMaestro=document.getElementById('reconfig-ciclo').value;
-  APP.diaInicioCiclo=document.getElementById('reconfig-dia').value;
+  const _diaEl=document.getElementById('reconfig-dia');
+  APP.diaInicioCiclo=_diaEl?_diaEl.value:'1';
   APP.ingresos=reconfigIngresos;closeModal('modal-reconfig');saveState();renderDashboard();
   alert('✅ Finanzas reconfiguradas con éxito.');
 }
@@ -1674,7 +1865,7 @@ function renderMetasView(){
       <h2 style="margin:0 0 10px 0;color:var(--success)">Configurar Fondo de Emergencia</h2>
       <p style="margin:0;color:var(--text-muted);font-size:15px">Deducimos tus gastos vitales de tus cajones Fijos y Variables.</p></div>
       <label style="${labelS}">Gastos Vitales Mensuales (calculado automáticamente)</label>
-      <div style="position:relative;margin-bottom:25px"><span style="position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--text-light);font-weight:bold;font-size:18px">$</span>
+      <div style="position:relative;margin-bottom:25px"><span style="position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--text-light);font-weight:bold;font-size:18px;pointer-events:none">$</span>
       <input type="number" min="0" onkeydown="blockInvalid(event)" value="${s.gastosVitalesMensuales}" oninput="METAS_STATE.gastosVitalesMensuales=this.value;renderMetasView()" style="${inputS}padding-left:35px;margin:0"></div>
       <label style="${labelS}">¿Cuántos meses quieres blindar?</label>
       <div style="display:flex;gap:15px;margin-bottom:30px">
@@ -2242,7 +2433,7 @@ function calcDiasCobro() {
     return Math.ceil((targets[0] - hoyMidnight) / 86400000);
   }
   if (APP.cicloMaestro === 'Semanal') {
-    const dow = hoy.getDay(); const target = parseInt(APP.diaInicioCiclo) || 1;
+    const dow = hoy.getDay(); const _diaP=parseInt(APP.diaInicioCiclo); const target = isNaN(_diaP)?1:_diaP;
     let diff = target - dow; if (diff <= 0) diff += 7;
     return diff;
   }
@@ -2261,7 +2452,7 @@ function renderDiasCobro() {
   const DIAS_SEM_NOM = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   let texto = '';
   if (APP.cicloMaestro === 'Semanal') {
-    const nombreDia = DIAS_SEM_NOM[parseInt(APP.diaInicioCiclo) || 1];
+    const _diaIdx=parseInt(APP.diaInicioCiclo); const nombreDia = DIAS_SEM_NOM[isNaN(_diaIdx)?1:_diaIdx];
     if (dias === 0) texto = `🟢 ¡Hoy cobras (${nombreDia})!`;
     else if (dias === 1) texto = `⏰ Cobras mañana (${nombreDia})`;
     else texto = `📅 Cobras el ${nombreDia} (en ${dias} días)`;
@@ -2321,6 +2512,12 @@ function renderProximos7Dias() {
       else if (ev.frecuencia === 'Anual') aplica = fecha.getDate() === ev.dia && fecha.getMonth() === fo.getMonth() && fecha >= fo;
       if (aplica) eventos.push({ ...ev, fecha, diasRestantes: i });
     });
+    // Agregar días de cobro de ingresos
+    (APP.ingresos||[]).forEach(ing=>{
+      if(checkDiaIngreso(ing,fecha)){
+        eventos.push({id:'_ing_'+i+ing.nombre,nombre:'💰 '+(ing.nombre||'Ingreso'),monto:parseFloat(ing.monto)||0,tipo:'pago',frecuencia:ing.frecuencia,_esIngreso:true,fecha,diasRestantes:i});
+      }
+    });
   }
   eventos.sort((a, b) => a.diasRestantes - b.diasRestantes);
   if (!eventos.length) {
@@ -2362,9 +2559,11 @@ function sugerirAlertasAutomaticas() {
   const hoy = new Date();
   let creadas = 0;
   sugeridas.forEach(s => {
+    const _diaNum=parseInt(APP.diaInicioCiclo)||1;
+    const _diaEvento=(s.frecuencia==='Semanal')?obtenerDiaMesParaSemana(isNaN(_diaNum)?1:_diaNum):_diaNum;
     APP.eventosCalendario.push({
       id: Date.now() + creadas,
-      dia: parseInt(APP.diaInicioCiclo) || 1,
+      dia: _diaEvento,
       nombre: s.nombre, monto: s.monto, tipo: s.tipo,
       frecuencia: s.frecuencia === 'Mensual' ? 'Mensual' : s.frecuencia === 'Semanal' ? 'Semanal' : 'Mensual',
       mesCreacion: hoy.getMonth(), anioCreacion: hoy.getFullYear()
@@ -2666,6 +2865,297 @@ function ejecutarFire(){
   const tasaAhorro=im>0?Math.round((ahorroMes/im)*100):0;
   s.resultadoFire={metaFire,anosFire:Math.ceil(meses/12),tasaAhorro,gastosMensuales:gastos,progreso:Math.min(100,Math.round((patrimonio/metaFire)*100))};
   renderMetasView();
+}
+
+// ═══════════════════════════════════════════
+// FEATURE: CALENDARIO FULLSCREEN
+// ═══════════════════════════════════════════
+let _calFS_mes = new Date().getMonth();
+let _calFS_anio = new Date().getFullYear();
+
+function abrirCalendarioFullscreen(){
+  _calFS_mes = APP.mesActual;
+  _calFS_anio = APP.anioActual;
+  renderCalendarioFS();
+  document.getElementById('fullscreen-calendario').classList.remove('hidden');
+}
+
+function navCalendarioFS(dir){
+  _calFS_mes += dir;
+  if(_calFS_mes > 11){ _calFS_mes = 0; _calFS_anio++; }
+  else if(_calFS_mes < 0){ _calFS_mes = 11; _calFS_anio--; }
+  renderCalendarioFS();
+}
+
+function renderCalendarioFS(){
+  const hoy = new Date();
+  const dEnMes = new Date(_calFS_anio, _calFS_mes + 1, 0).getDate();
+  const primerDia = new Date(_calFS_anio, _calFS_mes, 1).getDay();
+
+  document.getElementById('cal-fs-label').textContent = MESES[_calFS_mes] + ' ' + _calFS_anio;
+
+  // Obtener todos los eventos del mes (recurrentes incluidos)
+  function getEventosDia(dia){
+    const fv = new Date(_calFS_anio, _calFS_mes, dia);
+    const evsCal = APP.eventosCalendario.filter(ev => {
+      const fo = new Date(ev.anioCreacion || _calFS_anio, ev.mesCreacion || _calFS_mes, ev.dia);
+      if(fv < fo) return false;
+      if(ev.frecuencia === 'Único') return fv.toDateString() === fo.toDateString();
+      if(ev.frecuencia === 'Semanal') return fv.getDay() === fo.getDay();
+      if(ev.frecuencia === 'Mensual') return fv.getDate() === ev.dia;
+      if(ev.frecuencia === 'Anual') return fv.getDate() === ev.dia && fv.getMonth() === fo.getMonth();
+      return false;
+    });
+    // Añadir ingresos configurados con día
+    const evsIng = getIngresosParaDia(dia, _calFS_mes, _calFS_anio);
+    return [...evsIng, ...evsCal];
+  }
+
+  // Grid de días
+  let html = '';
+  for(let i = 0; i < primerDia; i++) html += '<div></div>';
+
+  for(let d = 1; d <= dEnMes; d++){
+    const esHoy = d === hoy.getDate() && _calFS_mes === hoy.getMonth() && _calFS_anio === hoy.getFullYear();
+    const evs = getEventosDia(d);
+    const tienePago = evs.some(e => e.tipo === 'pago');
+    const tieneGasto = evs.some(e => e.tipo === 'gasto');
+
+    let bg = 'var(--bg-secondary)';
+    let txtColor = 'var(--text-main)';
+    let borderStyle = '1px solid var(--border-color)';
+    if(esHoy){ bg = 'var(--primary)'; txtColor = '#fff'; borderStyle = 'none'; }
+    else if(tienePago && tieneGasto){ bg = 'linear-gradient(135deg,var(--success-light) 50%,var(--danger-light) 50%)'; borderStyle = '1px solid var(--border-light)'; }
+    else if(tienePago){ bg = 'var(--success-light)'; borderStyle = '1px solid var(--success-alt)'; }
+    else if(tieneGasto){ bg = 'var(--danger-light)'; borderStyle = '1px solid var(--danger)'; }
+
+    // Chips de eventos (máx 3)
+    const chips = evs.slice(0, 3).map(ev =>
+      `<div style="font-size:10px;padding:2px 5px;border-radius:4px;margin-top:2px;background:${ev.tipo==='pago'?'var(--success-alt)':'var(--danger)'};color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${escH(ev.nombre)}</div>`
+    ).join('');
+    const masEvs = evs.length > 3 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">+${evs.length - 3} más</div>` : '';
+
+    html += `<div onclick="handleDayClick(${d});APP.mesActual=${_calFS_mes};APP.anioActual=${_calFS_anio}" style="background:${bg};border:${borderStyle};border-radius:12px;padding:8px;cursor:pointer;min-height:80px;transition:0.2s;display:flex;flex-direction:column" onmouseover="this.style.filter='brightness(0.95)'" onmouseout="this.style.filter=''">
+      <span style="font-size:14px;font-weight:bold;color:${txtColor}">${d}</span>
+      ${chips}${masEvs}
+    </div>`;
+  }
+  document.getElementById('cal-fs-grid').innerHTML = html;
+
+  // Lista de eventos del mes
+  const todosEvsMes = [];
+  for(let d = 1; d <= dEnMes; d++){
+    getEventosDia(d).forEach(ev => todosEvsMes.push({...ev, _dia: d}));
+  }
+  todosEvsMes.sort((a, b) => a._dia - b._dia);
+
+  let listaHtml = '';
+  if(todosEvsMes.length){
+    listaHtml = `<div style="background:var(--bg-card);border-radius:20px;border:1px solid var(--border-color);padding:25px">
+      <h3 style="margin:0 0 18px 0;color:var(--text-main);font-size:16px">Alertas de ${MESES[_calFS_mes]}</h3>
+      ${todosEvsMes.map(ev => {
+        const frBadge = ev.frecuencia !== 'Único' ? `<span style="font-size:10px;background:var(--bg-secondary);border:1px solid var(--border-light);color:var(--text-muted);padding:2px 7px;border-radius:8px;margin-left:6px">${ev.frecuencia}</span>` : '';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:var(--bg-secondary);margin-bottom:8px;border:1px solid var(--border-light);cursor:pointer" onclick="handleDayClick(${ev._dia});APP.mesActual=${_calFS_mes};APP.anioActual=${_calFS_anio}">
+          <div style="width:36px;height:36px;border-radius:10px;background:${ev.tipo==='pago'?'var(--success-light)':'var(--danger-light)'};color:${ev.tipo==='pago'?'var(--success-alt)':'var(--danger)'};display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;flex-shrink:0">${ev._dia}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:bold;color:var(--text-main);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(ev.nombre)}${frBadge}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${MESES[_calFS_mes]} ${ev._dia}</div>
+          </div>
+          <span style="font-weight:bold;font-size:16px;color:${ev.tipo==='pago'?'var(--success-alt)':'var(--danger)'};flex-shrink:0">${ev.tipo==='pago'?'+':'-'}${fmtMoney(ev.monto)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    listaHtml = `<p style="text-align:center;color:var(--text-muted);padding:20px">Sin alertas programadas para ${MESES[_calFS_mes]}. Haz clic en un día para añadir.</p>`;
+  }
+  document.getElementById('cal-fs-eventos').innerHTML = listaHtml;
+}
+
+// ═══════════════════════════════════════════
+// FEATURE: CONFIGURACIÓN AVANZADA DE FECHAS DE PAGO
+// ═══════════════════════════════════════════
+let _agendaEdit = {};
+let _agendaFiltro = null; // Filtro activo al abrir config avanzada
+
+function mostrarPromptConfigAvanzada(){
+  document.getElementById('modal-config-prompt').classList.remove('hidden');
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function abrirConfigAvanzada(cajonFiltro){
+  if(!APP.itemsAgenda) APP.itemsAgenda={};
+  _agendaFiltro=cajonFiltro||null;
+  _agendaEdit=JSON.parse(JSON.stringify(APP.itemsAgenda));
+  if(cajonFiltro&&!_agendaEdit[cajonFiltro]) _agendaEdit[cajonFiltro]=[];
+  renderConfigAvanzada();
+  document.getElementById('fullscreen-config-avanzada').classList.remove('hidden');
+}
+
+// Cambia la frecuencia de un ítem directamente (sin confirm — la advertencia es al guardar)
+function cambiarFrecuenciaItem(cajon, idx, nuevaFrecuencia){
+  if(!_agendaEdit[cajon]||!_agendaEdit[cajon][idx]) return;
+  _agendaEdit[cajon][idx].frecuencia=nuevaFrecuencia;
+  _agendaEdit[cajon][idx].diaPago=null;
+  _agendaEdit[cajon][idx].diaSemana=null;
+  renderConfigAvanzada();
+}
+
+function renderConfigAvanzada(){
+  const el=document.getElementById('config-avanzada-content');
+  if(!el) return;
+  const cajonFiltro=_agendaFiltro;
+  const DIAS_SEM=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const cajonesMostrar=cajonFiltro?[cajonFiltro]:APP.ordenCajones.filter(n=>
+    n!=='Libre'&&!n.startsWith('Reto:')&&!n.startsWith('Meta:')&&
+    APP.cajones[n]?.frecuencia!=='Imprevisto_Pagado'
+  );
+
+  let html=`<div style="background:var(--primary-light);padding:18px 22px;border-radius:15px;border-left:5px solid var(--primary);margin-bottom:25px">
+    <p style="margin:0;color:var(--primary);font-size:14px">💡 Los gastos con <b>fecha de pago</b> aparecerán en el calendario y en <b>Próximos 7 días</b>. Cambiar la frecuencia actualiza la cascada.</p>
+  </div>`;
+
+  if(!cajonesMostrar.length){
+    html+='<p style="color:var(--text-muted);text-align:center;padding:40px">No hay cajones configurables.</p>';
+    el.innerHTML=html; return;
+  }
+
+  cajonesMostrar.forEach(cajon=>{
+    // Usar comillas simples en handlers (seguro dentro de atributos HTML con comillas dobles)
+    const jsC="'"+cajon.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
+    const items=_agendaEdit[cajon]||[];
+    const frecCajon=APP.cajones[cajon]?.frecuencia||'Mensual';
+
+    html+=`<div style="background:var(--bg-card);padding:25px;border-radius:20px;border:1px solid var(--border-color);margin-bottom:20px;box-shadow:var(--card-shadow)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+        <h3 style="margin:0;color:var(--text-main);font-size:17px">${escH(cajon)}</h3>
+        <span style="font-size:12px;color:var(--text-muted);background:var(--bg-tertiary);padding:4px 12px;border-radius:10px;border:1px solid var(--border-color)">${frecCajon}</span>
+      </div>`;
+
+    if(!items.length) html+=`<p style="color:var(--text-muted);font-size:13px;margin:0 0 15px 0">Sin gastos añadidos. Agrega los que conforman este cajón para programar sus fechas.</p>`;
+
+    items.forEach((item,idx)=>{
+      let diaInput='';
+      if(item.frecuencia==='Semanal'){
+        // Selector de día de la semana
+        const opts=DIAS_SEM.map((d,i)=>`<option value="${i}"${item.diaSemana===i?' selected':''}>${d}</option>`).join('');
+        diaInput=`<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+          <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">Día:</span>
+          <select style="padding:8px 10px;border-radius:10px;border:1px solid var(--border-light);background:var(--bg-secondary);color:var(--text-main);font-size:13px;outline:none" onchange="_agendaEdit[${jsC}][${idx}].diaSemana=parseInt(this.value)||0">
+            <option value="">-- Día --</option>${opts}
+          </select></div>`;
+      }else if(item.frecuencia==='Diario'){
+        diaInput=''; // Diario no necesita elegir día
+      }else{
+        const lbl=item.frecuencia==='Mensual'?'Día':item.frecuencia==='Quincenal'?'Día (1ª q.)':item.frecuencia==='Anual'?'Día':'Día';
+        diaInput=`<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+          <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">${lbl}:</span>
+          <input type="text" inputmode="numeric" placeholder="1-31" value="${item.diaPago||''}" style="width:62px;padding:8px;border-radius:10px;border:1px solid var(--border-light);background:var(--bg-secondary);color:var(--text-main);font-size:13px;outline:none;text-align:center" onchange="_agendaEdit[${jsC}][${idx}].diaPago=parseInt(this.value.replace(/[^0-9]/g,''))||null"></div>`;
+      }
+
+      html+=`<div style="display:grid;grid-template-columns:2fr 1fr 1fr auto auto;gap:8px;align-items:center;margin-bottom:8px;padding:12px;background:var(--bg-secondary);border-radius:12px;border:1px solid var(--border-light)">
+        <input type="text" placeholder="Nombre (ej. Renta, Netflix)" value="${escH(item.nombre||'')}" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border-light);background:var(--bg-card);color:var(--text-main);font-size:13px;outline:none" onchange="_agendaEdit[${jsC}][${idx}].nombre=this.value">
+        <div style="display:flex;align-items:center;border:1px solid var(--border-light);border-radius:10px;background:var(--bg-card);overflow:hidden">
+          <span style="padding:0 6px 0 10px;font-size:13px;color:var(--text-light);flex-shrink:0">$</span>
+          <input type="text" inputmode="decimal" placeholder="0" value="${item.monto||''}" style="flex:1;padding:8px 8px 8px 0;border:none;outline:none;font-size:13px;background:transparent;color:var(--text-main);min-width:0" oninput="this.value=this.value.replace(/[^0-9.]/g,'');_agendaEdit[${jsC}][${idx}].monto=parseFloat(this.value)||0">
+        </div>
+        <select style="padding:8px;border-radius:10px;border:1px solid var(--border-light);background:var(--bg-card);color:var(--text-main);font-size:13px;outline:none" onchange="cambiarFrecuenciaItem(${jsC},${idx},this.value)">
+          ${['Diario','Semanal','Quincenal','Mensual','Anual'].map(f=>`<option${item.frecuencia===f?' selected':''}>${f}</option>`).join('')}
+        </select>
+        ${diaInput}
+        <button onclick="_agendaEdit[${jsC}].splice(${idx},1);renderConfigAvanzada()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:5px;flex-shrink:0">🗑️</button>
+      </div>`;
+    });
+
+    html+=`<button onclick="if(!_agendaEdit[${jsC}])_agendaEdit[${jsC}]=[];_agendaEdit[${jsC}].push({id:Date.now()+Math.random(),nombre:'',monto:'',frecuencia:'${frecCajon}',diaPago:null,diaSemana:null});renderConfigAvanzada()" style="border:1px dashed var(--primary);color:var(--primary);background:transparent;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:13px;width:100%;margin-top:5px">+ Añadir gasto en ${escH(cajon)}</button>
+    </div>`;
+  });
+
+  html+=`<div style="position:sticky;bottom:20px;background:var(--bg-card);border:2px solid var(--primary);border-radius:20px;padding:20px 25px;display:flex;gap:15px;align-items:center;box-shadow:var(--modal-shadow)">
+    <p style="margin:0;flex:1;font-size:13px;color:var(--text-muted)">Solo los gastos con <b>día de pago</b> definido crean alertas en el calendario.</p>
+    <button onclick="guardarConfigAvanzada()" style="background:var(--primary);color:#fff;border:none;padding:15px 28px;border-radius:15px;font-weight:bold;font-size:15px;cursor:pointer;white-space:nowrap">💾 Guardar recordatorios</button>
+  </div>`;
+
+  el.innerHTML=html;
+}
+
+function guardarConfigAvanzada(){
+  const cajonFiltro=_agendaFiltro;
+  const hoy=new Date();
+  const cajones=cajonFiltro?[cajonFiltro]:Object.keys(_agendaEdit);
+
+  // ── Detectar cambios de frecuencia y advertir impacto en cascada ──
+  const cambios=[];
+  let impactoTotal=0;
+  const cajonesParaActualizar=[];
+  cajones.forEach(cajon=>{
+    const itemsNuevos=_agendaEdit[cajon]||[];
+    const itemsViejos=APP.itemsAgenda[cajon]||[];
+    const eq=(m,f)=>calcularAcople(parseFloat(m)||0,f,APP.cicloMaestro);
+    itemsNuevos.forEach((item,i)=>{
+      const viejo=itemsViejos[i];
+      if(!viejo||!item.monto||!viejo.monto) return;
+      if(item.frecuencia!==viejo.frecuencia){
+        const antes=eq(viejo.monto,viejo.frecuencia);
+        const despues=eq(item.monto,item.frecuencia);
+        const diff=despues-antes;
+        if(Math.abs(diff)>0.01){
+          impactoTotal+=diff;
+          cambios.push(`"${item.nombre||'Gasto'}" (${cajon}): ${viejo.frecuencia} → ${item.frecuencia} (${diff>0?'+':''}${fmtMoney(diff)}/ciclo)`);
+        }
+      }
+    });
+    // Marcar cajón para actualizar si todos sus ítems tienen monto
+    const todosConMonto=itemsNuevos.length>0&&itemsNuevos.every(it=>parseFloat(it.monto)>0);
+    if(todosConMonto&&APP.cajones[cajon]) cajonesParaActualizar.push(cajon);
+  });
+
+  if(cambios.length>0){
+    let msg=`⚠️ Cambios de frecuencia detectados:\n\n${cambios.join('\n')}\n`;
+    msg+=`\nImpacto total en cascada: ${impactoTotal>0?'+':''}${fmtMoney(impactoTotal)} por ciclo.`;
+    if(cajonesParaActualizar.length>0) msg+=`\n\nSe actualizarán los montos de los cajones afectados en la cascada.`;
+    msg+=`\n\n¿Confirmar y guardar?`;
+    if(!confirm(msg)) return;
+    // Actualizar montos de cajones en cascada
+    cajonesParaActualizar.forEach(cajon=>{
+      const items=_agendaEdit[cajon]||[];
+      const nuevoTotal=items.reduce((sum,it)=>sum+calcularAcople(parseFloat(it.monto)||0,it.frecuencia,APP.cicloMaestro),0);
+      APP.cajones[cajon].monto=nuevoTotal;
+      APP.cajones[cajon].frecuencia=APP.cicloMaestro;
+    });
+  }
+
+  APP.itemsAgenda=JSON.parse(JSON.stringify(_agendaEdit));
+  // Eliminar eventos de agenda anteriores para los cajones afectados
+  APP.eventosCalendario=APP.eventosCalendario.filter(ev=>!(ev._source==='agenda'&&cajones.includes(ev._cajon)));
+  // Crear eventos nuevos para ítems con día configurado
+  let creados=0;
+  cajones.forEach(cajon=>{
+    (APP.itemsAgenda[cajon]||[]).forEach(item=>{
+      if(!item.nombre||!item.monto) return;
+      let dia,frec;
+      if(item.frecuencia==='Semanal'){
+        if(item.diaSemana===null||item.diaSemana===undefined) return;
+        dia=obtenerDiaMesParaSemana(item.diaSemana); frec='Semanal';
+      }else if(item.frecuencia==='Diario'){
+        return; // Diario no necesita evento en calendario
+      }else{
+        if(!item.diaPago) return;
+        dia=item.diaPago; frec=item.frecuencia==='Anual'?'Anual':'Mensual';
+      }
+      APP.eventosCalendario.push({
+        id:Date.now()+creados+Math.random(),
+        dia,nombre:item.nombre,monto:parseFloat(item.monto)||0,
+        tipo:'gasto',frecuencia:frec,
+        mesCreacion:hoy.getMonth(),anioCreacion:hoy.getFullYear(),
+        _source:'agenda',_cajon:cajon
+      });
+      creados++;
+    });
+  });
+  saveState();renderDashboard();
+  document.getElementById('fullscreen-config-avanzada').classList.add('hidden');
+  if(creados>0) alert(`✅ ${creados} recordatorio${creados!==1?'s':''} creado${creados!==1?'s':''} en el calendario.`);
+  else alert('✅ Gastos guardados. Asigna un día de pago a cada uno para que aparezcan en el calendario.');
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
