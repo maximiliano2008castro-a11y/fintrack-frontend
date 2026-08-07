@@ -656,9 +656,9 @@ function saveState(){
 }
 async function syncToCloud(){
   if(!APP.userEmail) return;
-  await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/save-data',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email:APP.userEmail, financialData:{
+  await apiFetch('/api/auth/save-data',{
+    method:'POST',
+    body:JSON.stringify({financialData:{
       nombre:APP.userName, fechaNacimiento:APP.fechaNacimiento, pinSeguridad:APP.pinSeguridad,
       configGlobal:{saldoActual:APP.saldoActual, boveda:APP.boveda, cajaFuerte:APP.cajaFuerte,
         cicloMaestro:APP.cicloMaestro, diaInicioCiclo:APP.diaInicioCiclo,
@@ -709,23 +709,61 @@ function switchToLogin(){
   document.getElementById('login-form-section').classList.remove('hidden');
   document.getElementById('login-subtitle').textContent='LOGIN';
 }
+// ═══════════════════════════════════════════
+// CONEXION CON EL BACKEND
+// ═══════════════════════════════════════════
+const API_BASE='https://fintrack-backend-27ml.onrender.com';
+
+function guardarSesion(token,email,nombre){
+  localStorage.setItem('token',token);
+  localStorage.setItem('userEmail',email);
+  if(nombre) localStorage.setItem('userName',nombre);
+  APP.userEmail=email; APP.token=token;
+}
+
+function cerrarSesionLocal(){
+  localStorage.removeItem('token');
+  localStorage.removeItem('userEmail');
+  APP.token=null; APP.userEmail=null;
+}
+
+// fetch con el token de sesion ya puesto en el header.
+// Si el servidor responde 401, la sesion murio: se limpia y se recarga.
+async function apiFetch(ruta,opciones={}){
+  const token=localStorage.getItem('token');
+  const r=await fetch(API_BASE+ruta,{
+    ...opciones,
+    headers:{
+      'Content-Type':'application/json',
+      ...(token?{Authorization:'Bearer '+token}:{}),
+      ...(opciones.headers||{})
+    }
+  });
+  if(r.status===401){
+    cerrarSesionLocal();
+    alert('Tu sesión expiró. Vuelve a iniciar sesión.');
+    location.reload();
+    throw new Error('Sesion expirada');
+  }
+  return r;
+}
+
 async function handleLogin(){
   const email=document.getElementById('login-email').value.trim().toLowerCase();
   const password=document.getElementById('login-password').value;
-  if(!email||!password) return alert('⚠️ Ingresa correo y contraseña.');
-  let ok=false;
+  if(!email||!password) return alert('Ingresa tu correo y contraseña.');
   try{
-    const r=await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/login',{
+    const r=await fetch(API_BASE+'/api/auth/login',{
       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-    if(r.ok) ok=true;
-    else{const e=await r.json().catch(()=>({}));return alert('❌ '+(e.message||'Credenciales incorrectas'));}
-  }catch{
-    const db=JSON.parse(localStorage.getItem('finTrack_DB')||'{}');
-    if(!db[email]) return alert('❌ Esta cuenta no existe en la base local.');
-    if(db[email].password!==password) return alert('❌ Contraseña incorrecta.');
-    ok=true;
+    const res=await r.json().catch(()=>({}));
+    if(!r.ok) return alert(res.message||'Correo o contraseña incorrectos.');
+    if(!res.token) return alert('No se pudo iniciar la sesión. Intenta de nuevo en un momento.');
+    guardarSesion(res.token,email,res.user&&res.user.nombre);
+    initDashboard();
+  }catch(e){
+    console.error('Fallo al conectar con el servidor:',e);
+    alert('No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.');
   }
-  if(ok){localStorage.setItem('token','active_session');localStorage.setItem('userEmail',email);APP.userEmail=email;APP.token='active_session';initDashboard();}
 }
 async function handleRegister(){
   const email=document.getElementById('reg-email').value.trim().toLowerCase();
@@ -735,21 +773,25 @@ async function handleRegister(){
   const ps=validarPassword(password);
   if(ps!=='OK') return alert('🛡️ Contraseña insegura:\n'+ps);
   if(password!==confirm) return alert('❌ Las contraseñas no coinciden.');
-  let ok=false;
   try{
-    const r=await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/register',{
+    const r=await fetch(API_BASE+'/api/auth/register',{
       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
     const res=await r.json().catch(()=>({}));
-    if(r.ok) ok=true; else return alert('❌ '+(res.message||'Error al registrar.'));
-  }catch{ok=true;}
-  if(ok){
+    if(!r.ok) return alert(res.message||'No se pudo crear la cuenta.');
+    if(!res.token) return alert('Tu cuenta se creó. Inicia sesión para continuar.');
+
+    // Se conserva lo que ya hubiera guardado localmente, pero SIN la contraseña.
     const db=JSON.parse(localStorage.getItem('finTrack_DB')||'{}');
-    // Keep existing data if account already existed locally, just update password
     const existing=db[email]||{};
-    db[email]={...existing, password, isConfigured:existing.isConfigured||false, configGlobal:existing.configGlobal||{ingresos:[]}, historial:existing.historial||[], agenda:existing.agenda||[]};
+    db[email]={...existing, isConfigured:existing.isConfigured||false, configGlobal:existing.configGlobal||{ingresos:[]}, historial:existing.historial||[], agenda:existing.agenda||[]};
+    delete db[email].password;
     localStorage.setItem('finTrack_DB',JSON.stringify(db));
-    localStorage.setItem('token','active_session'); localStorage.setItem('userEmail',email);
-    APP.userEmail=email; APP.token='active_session'; initDashboard();
+
+    guardarSesion(res.token,email,res.user&&res.user.nombre);
+    initDashboard();
+  }catch(e){
+    console.error('Fallo al conectar con el servidor:',e);
+    alert('No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.');
   }
 }
 
@@ -993,10 +1035,11 @@ function handleOnbFinalize(){
   APP.logros          = [];
   APP.rachaCiclos     = 0;
 
-  // Also persist password so local login works on next visit
+  // La contrasena NO se guarda aqui: vive encriptada en el servidor.
   const db = JSON.parse(localStorage.getItem('finTrack_DB')||'{}');
   const existing = db[APP.userEmail]||{};
-  db[APP.userEmail] = { ...existing, password: existing.password||'' };
+  db[APP.userEmail] = { ...existing };
+  delete db[APP.userEmail].password;
   localStorage.setItem('finTrack_DB', JSON.stringify(db));
 
   saveState();
@@ -1028,7 +1071,7 @@ async function initDashboard(){
   document.getElementById('loading-screen').style.display='flex';
   let isFirstTime=true;
   try{
-    const r=await fetch(`https://fintrack-backend-27ml.onrender.com/api/auth/get-data/${APP.userEmail}`);
+    const r=await apiFetch('/api/auth/get-data');
     const data=await r.json();
     if(r.ok&&data.isConfigured){
       const d=data.financialData; const c=d.configGlobal||{};
@@ -1064,7 +1107,7 @@ function handleLogout(){
 async function handleEliminarCuenta(){
   if(!confirm('🚨 ¿Eliminar tu cuenta PERMANENTEMENTE?')) return;
   if(prompt('Escribe ELIMINAR para confirmar:')!=='ELIMINAR') return alert('❌ Cancelado.');
-  try{await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/delete',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:APP.userEmail})});}catch{}
+  try{await apiFetch('/api/auth/delete',{method:'DELETE'});}catch{}
   const db=JSON.parse(localStorage.getItem('finTrack_DB')||'{}'); delete db[APP.userEmail];
   localStorage.setItem('finTrack_DB',JSON.stringify(db));
   localStorage.removeItem('token');localStorage.removeItem('userEmail');
@@ -1696,10 +1739,11 @@ function handleGuardarPerfil(){
   APP.userName=nombre;
   if(document.getElementById('ep-fecha').value) APP.fechaNacimiento=document.getElementById('ep-fecha').value;
   if(pin) APP.pinSeguridad=pin;
-  // Persist new password to local DB so login still works offline
+  // Ojo: cambiar la contrasena aqui solo la actualiza en pantalla.
+  // El backend todavia no tiene endpoint para cambiarla, asi que no se guarda
+  // en ningun lado. Antes se escribia en texto plano en el navegador.
   if(password){
-    const db=JSON.parse(localStorage.getItem('finTrack_DB')||'{}');
-    if(db[APP.userEmail]){db[APP.userEmail].password=password;localStorage.setItem('finTrack_DB',JSON.stringify(db));}
+    alert('El cambio de contraseña aún no está disponible. Los demás datos sí se guardaron.');
   }
   closeModal('modal-edit-profile');saveState();renderDashboard();
   alert('✅ Perfil actualizado correctamente.');
