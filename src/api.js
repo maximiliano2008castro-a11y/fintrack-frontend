@@ -3,7 +3,7 @@
 // Para cambiar de servidor, edita REACT_APP_API_URL en el archivo .env del frontend.
 
 export const API_URL =
-    process.env.REACT_APP_API_URL || 'https://fintrack-backend-27ml.onrender.com';
+    process.env.REACT_APP_API_URL || 'https://fintrack-backend-omega.vercel.app';
 
 export const getToken = () => localStorage.getItem('token');
 

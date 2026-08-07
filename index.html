@@ -712,7 +712,9 @@ function switchToLogin(){
 // ═══════════════════════════════════════════
 // CONEXION CON EL BACKEND
 // ═══════════════════════════════════════════
-const API_BASE='https://fintrack-backend-27ml.onrender.com';
+// Backend en Vercel. El de Render (fintrack-backend-27ml.onrender.com) sigue
+// desplegado como respaldo, pero se duerme y tarda ~50s en despertar.
+const API_BASE='https://fintrack-backend-omega.vercel.app';
 
 function guardarSesion(token,email,nombre){
   localStorage.setItem('token',token);
