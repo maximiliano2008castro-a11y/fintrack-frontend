@@ -429,8 +429,9 @@ body.dark .balance-amount{color:#10ac84}
     <label class="label-modal">Fecha de Nacimiento</label><input type="date" id="ep-fecha" class="input-modal">
     <div style="padding:15px;background:var(--bg-secondary);border-radius:15px;border:1px solid var(--border-color);margin-bottom:20px">
       <p style="margin:0 0 15px 0;font-size:12px;color:var(--text-muted)">Deja en blanco si no deseas cambiar contraseña o NIP.</p>
-      <label class="label-modal">Nueva Contraseña</label><input type="password" id="ep-password" class="input-modal">
-      <label class="label-modal">Confirmar Contraseña</label><input type="password" id="ep-confirm" class="input-modal">
+      <label class="label-modal">Contraseña Actual</label><input type="password" id="ep-password-actual" class="input-modal" autocomplete="current-password">
+      <label class="label-modal">Nueva Contraseña</label><input type="password" id="ep-password" class="input-modal" autocomplete="new-password">
+      <label class="label-modal">Confirmar Contraseña</label><input type="password" id="ep-confirm" class="input-modal" autocomplete="new-password">
       <label class="label-modal">Nuevo NIP (4 dígitos)</label><input type="password" maxlength="4" id="ep-pin" class="input-modal" style="letter-spacing:8px;text-align:center">
       <label class="label-modal">Confirmar NIP</label><input type="password" maxlength="4" id="ep-pin-confirm" class="input-modal" style="letter-spacing:8px;text-align:center;margin:0">
     </div>
@@ -1719,12 +1720,14 @@ function openEditProfile(){
   document.getElementById('ep-nombre').value=APP.userName;
   document.getElementById('ep-correo').value=APP.userEmail;
   document.getElementById('ep-fecha').value=APP.fechaNacimiento;
+  document.getElementById('ep-password-actual').value='';
   document.getElementById('ep-password').value='';document.getElementById('ep-confirm').value='';
   document.getElementById('ep-pin').value='';document.getElementById('ep-pin-confirm').value='';
   openModal('modal-edit-profile');
 }
-function handleGuardarPerfil(){
+async function handleGuardarPerfil(){
   const nombre=document.getElementById('ep-nombre').value.trim();
+  const passwordActual=document.getElementById('ep-password-actual').value;
   const password=document.getElementById('ep-password').value;
   const confirmPwd=document.getElementById('ep-confirm').value;
   const pin=document.getElementById('ep-pin').value;
@@ -1733,6 +1736,7 @@ function handleGuardarPerfil(){
   if(password){
     const st=validarPassword(password);if(st!=='OK') return alert('🛡️ Contraseña insegura:\n'+st);
     if(password!==confirmPwd) return alert('❌ Las contraseñas no coinciden.');
+    if(!passwordActual) return alert('Para cambiar la contraseña necesitas escribir la actual.');
   }
   if(pin){
     if(pin.length!==4||!/^\d{4}$/.test(pin)) return alert('❌ El NIP debe ser exactamente 4 dígitos numéricos.');
@@ -1741,14 +1745,31 @@ function handleGuardarPerfil(){
   APP.userName=nombre;
   if(document.getElementById('ep-fecha').value) APP.fechaNacimiento=document.getElementById('ep-fecha').value;
   if(pin) APP.pinSeguridad=pin;
-  // Ojo: cambiar la contrasena aqui solo la actualiza en pantalla.
-  // El backend todavia no tiene endpoint para cambiarla, asi que no se guarda
-  // en ningun lado. Antes se escribia en texto plano en el navegador.
+  // La contrasena se cambia en el servidor, donde vive encriptada.
+  // Aqui no se guarda en ningun lado.
   if(password){
-    alert('El cambio de contraseña aún no está disponible. Los demás datos sí se guardaron.');
+    try{
+      const r=await apiFetch('/api/auth/change-password',{
+        method:'POST',
+        body:JSON.stringify({passwordActual, passwordNueva:password})
+      });
+      const res=await r.json().catch(()=>({}));
+      if(!r.ok){
+        // El resto del perfil no se guarda si la contrasena fallo, para que
+        // quede claro que la operacion no se completo.
+        return alert(res.message||'No se pudo cambiar la contraseña.');
+      }
+      document.getElementById('ep-password-actual').value='';
+      document.getElementById('ep-password').value='';
+      document.getElementById('ep-confirm').value='';
+    }catch(e){
+      console.error('Error al cambiar contraseña:',e);
+      return alert('No hay conexión con el servidor. La contraseña no se cambió.');
+    }
   }
+
   closeModal('modal-edit-profile');saveState();renderDashboard();
-  alert('✅ Perfil actualizado correctamente.');
+  alert(password ? 'Perfil y contraseña actualizados correctamente.' : 'Perfil actualizado correctamente.');
 }
 // ═══════════════════════════════════════════
 // FULLSCREEN: HISTORIAL
