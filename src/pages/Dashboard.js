@@ -8,6 +8,7 @@ import CajaFuerteFullScreen from '../components/CajaFuerteFullScreen';
 import BovedaFullScreen from '../components/BovedaFullScreen'; 
 import GuiaTutorial from '../components/GuiaTutorial'; 
 import RetosFullScreen from '../components/RetosFullScreen';
+import { apiFetch, cerrarSesion } from '../api';
 
 import { 
     FaWallet, FaArrowUp, FaArrowDown, FaSignOutAlt, FaCog, FaBoxOpen, 
@@ -129,7 +130,7 @@ const Dashboard = () => {
 
         const fetchCloudData = async () => {
             try {
-                const response = await fetch(`https://fintrack-backend-27ml.onrender.com/api/auth/get-data/${userEmail}`);
+                const response = await apiFetch('/api/auth/get-data');
                 const data = await response.json();
 
                 if (response.ok && data.isConfigured) {
@@ -180,11 +181,11 @@ const Dashboard = () => {
         };
 
         try {
-            await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/save-data', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, financialData: financialDataObj })
+            await apiFetch('/api/auth/save-data', {
+                method: 'POST',
+                body: JSON.stringify({ financialData: financialDataObj })
             });
-            setUserName(datos.nombre); setFechaNacimiento(datos.fechaNacimiento); setPinSeguridad(datos.pin); 
+            setUserName(datos.nombre); setFechaNacimiento(datos.fechaNacimiento); setPinSeguridad(datos.pin);
             setSaldoActual(datos.saldo); setCicloMaestro(datos.ciclo); setDiaInicioCiclo(datos.diaInicio);
             setIngresos(datos.ingresos); setCajones(datos.cajones); setOrdenCajones(datos.ordenCajones);
             setIsFirstTime(false); setShowTutorial(true); 
@@ -209,9 +210,9 @@ const Dashboard = () => {
             };
 
             try {
-                await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/save-data', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, financialData: financialDataObj })
+                await apiFetch('/api/auth/save-data', {
+                    method: 'POST',
+                    body: JSON.stringify({ financialData: financialDataObj })
                 });
             } catch (error) {}
         };
@@ -286,19 +287,16 @@ const Dashboard = () => {
         setIsCorteModalOpen(false); alert(`✅ ¡Tus cascadas se han reiniciado con éxito para este nuevo ciclo!`);
     };
 
-    const handleLogout = () => { localStorage.removeItem('token'); localStorage.removeItem('userEmail'); navigate('/'); };
+    const handleLogout = () => { cerrarSesion(); navigate('/'); };
 
     const handleEliminarCuenta = async () => {
         if (window.confirm("🚨 ADVERTENCIA: Estás a punto de eliminar tu cuenta de forma PERMANENTE. Perderás todas tus metas, cajones y dinero registrado.\n\n¿Deseas continuar?")) {
             const conf = window.prompt("Para confirmar la eliminación, escribe la palabra ELIMINAR en mayúsculas:");
             if (conf === "ELIMINAR") {
                 try {
-                    await fetch('https://fintrack-backend-27ml.onrender.com/api/auth/delete', {
-                        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: email })
-                    });
+                    await apiFetch('/api/auth/delete', { method: 'DELETE' });
                 } catch (error) { console.log("No se pudo contactar al backend para eliminar"); }
-                localStorage.removeItem('token'); localStorage.removeItem('userEmail');
+                cerrarSesion();
                 alert("🗑️ Tu cuenta ha sido eliminada correctamente.");
                 navigate('/');
             } else { alert("❌ Cancelado. La palabra no coincide."); }
